@@ -191,8 +191,25 @@ The usual cause is a field label that changed in n8n and no longer matches an en
 
 ## Deploy
 
-1. Push to a Git repo and import into Vercel.
-2. Set every variable from `.env.example` in the Vercel project (Production **and** Preview). `SUPABASE_SERVICE_ROLE_KEY` and `N8N_WEBHOOK_SECRET` must **not** be `NEXT_PUBLIC_`.
+`vercel.json` pins two things that are easy to get wrong:
+
+- **`"framework": "nextjs"`** — a Vercel project created against an empty repo defaults its
+  framework preset to "Other", which then fails with *No Output Directory named "public"
+  found after the Build completed*. It never runs `next build` at all. Settings in
+  `vercel.json` take precedence over the dashboard, so this pins it from the repo.
+- **`"regions": ["sin1"]`** — the Supabase project lives in `ap-southeast-1` (Singapore).
+  Vercel functions default to `iad1` (US East), which would send every server render and
+  every query across the Pacific and back. Colocating cuts a few hundred ms off each
+  request. Remove the line if you'd rather stay on the default.
+
+Then:
+
+1. Import the repo into Vercel.
+2. Set every variable from `.env.example` in the Vercel project, for Production **and**
+   Preview. `SUPABASE_SERVICE_ROLE_KEY` and `N8N_WEBHOOK_SECRET` must **not** be prefixed
+   `NEXT_PUBLIC_` — that prefix ships them to the browser.
+   Without these the build still succeeds (every page is dynamic, so nothing pre-renders
+   against Supabase) and then every request 500s at runtime. Set them before you redeploy.
 3. Point `team.sysorastack.com` at the deployment.
 4. In Supabase → Authentication → URL Configuration, set the Site URL to the same domain.
 5. Update the n8n `frame-ancestors` header to the production domain.
