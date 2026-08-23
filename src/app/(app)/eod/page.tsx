@@ -6,7 +6,7 @@ import { Callout, EmptyState } from "@/components/ui/callout";
 import { StatusChip } from "@/components/ui/status";
 import { requireSession, isStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { buildEodFormUrl, eodFormBaseUrl, EOD_PARAMS } from "@/lib/eod";
+import { buildEodFormUrl, eodFormBaseUrl, prefillEnabled, EOD_PARAMS } from "@/lib/eod";
 import { humanDate, localDateISO } from "@/lib/dates";
 import type { EodReport, Profile } from "@/lib/types";
 
@@ -87,7 +87,7 @@ export default async function EodPage() {
     <>
       <PageHeader
         title="EOD Report"
-        description="Your n8n form, embedded. Submissions land back here automatically."
+        description="Fill in your end-of-day report here without leaving the app."
         actions={
           <StatusChip
             state={submittedToday ? "present" : "unmarked"}
@@ -97,11 +97,11 @@ export default async function EodPage() {
       />
 
       {formUrl ? (
-        <EodFrame src={formUrl} formHost={formHost} />
+        <EodFrame src={formUrl} formHost={formHost} prefilled={prefillEnabled()} />
       ) : (
         <Callout tone="warn" title="No form URL configured yet.">
-          Set <code className="rounded bg-surface px-1 py-0.5 text-[12px]">N8N_EOD_FORM_URL</code>{" "}
-          in your environment to the n8n form address. Everything else on this page already works.
+          Set <code className="rounded bg-surface px-1 py-0.5 text-[12px]">EOD_FORM_URL</code> in
+          your environment to the form address. Everything else on this page already works.
         </Callout>
       )}
 
@@ -139,7 +139,9 @@ export default async function EodPage() {
         <CardHeader>
           <CardTitle>{staff ? "Recent submissions" : "Your EOD history"}</CardTitle>
           <CardDescription>
-            Stored exactly as n8n sent it, so a change to the form can never break this list.
+            Stored exactly as it arrived, so a change to the form can never break this list. This
+            fills up only once something POSTs submissions to the return webhook — the embedded
+            form does not do that on its own.
           </CardDescription>
         </CardHeader>
         <CardContent>

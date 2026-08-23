@@ -17,7 +17,9 @@ export const EOD_PARAMS = {
 } as const;
 
 export function eodFormBaseUrl(): string | null {
-  const raw = process.env.N8N_EOD_FORM_URL?.trim();
+  // EOD_FORM_URL is the current name; N8N_EOD_FORM_URL is kept as a fallback
+  // because the form is no longer necessarily an n8n one.
+  const raw = (process.env.EOD_FORM_URL || process.env.N8N_EOD_FORM_URL || "").trim();
   if (!raw) return null;
   try {
     const url = new URL(raw);
@@ -26,6 +28,19 @@ export function eodFormBaseUrl(): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether to append the signed-in person's details to the form URL.
+ *
+ * Only worth doing for a form that reads query parameters — n8n's Form Trigger
+ * does, a Notion embed does not. Set EOD_FORM_PREFILL=off for anything that
+ * ignores them, so the URL stays clean and the UI stops promising a prefill
+ * that will not happen.
+ */
+export function prefillEnabled(): boolean {
+  const raw = (process.env.EOD_FORM_PREFILL ?? "on").trim().toLowerCase();
+  return raw !== "off" && raw !== "false" && raw !== "0" && raw !== "no";
 }
 
 /**
@@ -65,6 +80,7 @@ export function buildEodFormUrl(input: {
 }): string | null {
   const base = eodFormBaseUrl();
   if (!base) return null;
+  if (!prefillEnabled()) return base;
 
   const url = new URL(base);
   url.searchParams.set(EOD_PARAMS.userId, input.profileId);

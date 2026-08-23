@@ -14,7 +14,15 @@ import { Callout } from "@/components/ui/callout";
  * surface the launcher instead of leaving a blank rectangle. The launcher
  * carries the identical prefilled URL, so attribution works either way.
  */
-export function EodFrame({ src, formHost }: { src: string; formHost: string }) {
+export function EodFrame({
+  src,
+  formHost,
+  prefilled,
+}: {
+  src: string;
+  formHost: string;
+  prefilled: boolean;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const [nonce, setNonce] = useState(0);
@@ -80,7 +88,9 @@ export function EodFrame({ src, formHost }: { src: string; formHost: string }) {
       </div>
 
       <p className="text-xs text-ink-muted">
-        Your name, email and user id are passed into the form automatically — nothing to retype.
+        {prefilled
+          ? "Your name, email and user id are passed into the form automatically — nothing to retype."
+          : "This form doesn’t accept prefilled details, so put your own name in it — that’s what ties the submission back to you."}
       </p>
     </div>
   );
