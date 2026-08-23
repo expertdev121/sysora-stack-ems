@@ -7,8 +7,12 @@ export const metadata: Metadata = {
     default: "Sysora Stack",
     template: "%s · Sysora Stack",
   },
-  description: "Attendance, leave and EOD reporting for the Sysora team.",
+  description: "Attendance, leave and EOD reporting for the Sysora Stack team.",
+  applicationName: "Sysora Stack",
   robots: { index: false, follow: false },
+  // Favicon comes from src/app/icon.png via the Next file convention, which
+  // emits the <link rel="icon"> itself. Declaring metadata.icons here as well
+  // would override that and lose the automatic cache-busting.
 };
 
 export const viewport: Viewport = {

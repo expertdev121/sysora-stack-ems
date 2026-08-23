@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  * If your logo is a full lockup that already contains the word "Sysora", pass
  * showText={false} so the name isn't printed twice.
  */
-const LOGO_SRC = "/logo.svg";
+const LOGO_SRC = "/logo.png";
 
 export function Wordmark({
   className,

@@ -40,6 +40,13 @@ export const TEAM_ASSETS: TeamAsset[] = [
       "GoHighLevel sub-account dashboard — CRM, pipelines, funnels and client automations.",
     href: "https://app.givesuite.com/v2/location/5VD5QnpROyZi3omw1BP1/dashboard",
   },
+  {
+    id: "superhuman-prompt-builder",
+    name: "Superhuman prompt builder",
+    description:
+      "Custom GPT for building prompts on the fly. No login of its own — uses your ChatGPT account.",
+    href: "https://chatgpt.com/g/g-686648dd496081918f2df808437bd55f-superhuman-on-the-fly-prompt-builder",
+  },
 ];
 
 export function assetsForRole(role: AppRole): TeamAsset[] {

@@ -108,5 +108,34 @@ export interface LeaveMonthly {
   total_days: number;
 }
 
+export interface Credential {
+  id: string;
+  org_id: string;
+  asset_id: string;
+  label: string;
+  username: string | null;
+  /** Encrypted. Never render this, never send it to the browser. */
+  secret_ciphertext: string;
+  url: string | null;
+  notes: string | null;
+  visible_to_roles: AppRole[];
+  rotated_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** What the client is allowed to know about a credential before revealing it. */
+export interface CredentialSummary {
+  id: string;
+  asset_id: string;
+  label: string;
+  username: string | null;
+  url: string | null;
+  notes: string | null;
+  visible_to_roles: AppRole[];
+  rotated_at: string | null;
+}
+
 /** Result shape returned by every server action in src/app/actions. */
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };

@@ -50,18 +50,45 @@ Every table carries `org_id` from day one. Adding a second org later is configur
 
 ---
 
+## Shared tool credentials
+
+Team assets can also hold the **logins** for those tools, so a small team doesn't need a
+separate password manager.
+
+- Secrets are encrypted with **AES-256-GCM** before they reach Postgres
+  (`src/lib/crypto.ts`), using `CREDENTIALS_ENCRYPTION_KEY` — an environment variable,
+  deliberately **not** stored in the database. A dump, a backup, or a stray `select *`
+  therefore yields ciphertext and nothing else.
+- **Not** `supabase_vault`, though it's installed. Vault's key lives with the database, so
+  service-role access alone would read every secret. Keeping the key in the environment
+  means an attacker needs both the database *and* the deployment env.
+- Ciphertext never reaches the browser. The page selects every column *except*
+  `secret_ciphertext`; decryption happens only in the `revealCredential` server action.
+- Owner-only by default, per-credential `visible_to_roles` to widen it.
+- **Every reveal is recorded** in `credential_reveals`. That trail is the offboarding
+  checklist — when someone leaves, it tells you exactly which shared logins to rotate.
+
+Two things this cannot do, and you should plan around:
+
+1. **Shared logins can't be revoked per person.** Marking someone as left disables *this*
+   app; it does nothing to Jira, n8n or GHL. Rotate anything they revealed.
+2. **Lose `CREDENTIALS_ENCRYPTION_KEY` and the stored secrets are gone.** Change it and
+   every credential must be re-entered. Keep a copy somewhere safe and separate.
+
 ## Your logo
 
-Drop the file at **`public/logo.svg`** and it replaces the navy "S" lettermark in the
-sidebar and on the login screen. Nothing else to change — `src/components/wordmark.tsx`
-picks it up automatically and falls back to the lettermark if the file is missing or fails
-to load, so the header is never a broken image.
+The Sysora node-graph mark lives at **`public/logo.png`** and renders in the sidebar and on
+the login screen, next to the "Sysora." wordmark. `src/components/wordmark.tsx` falls back
+to a navy lettermark if the file is ever missing, so the header is never a broken image.
 
-- SVG is best (crisp at any size). A PNG works too — rename it `logo.svg`'s extension in
-  `LOGO_SRC` at the top of `wordmark.tsx`.
-- It renders at 28px tall, width auto, capped at 128px.
-- If your logo is a **full lockup** that already contains the word "Sysora", pass
+- To swap it, replace `public/logo.png` (or point `LOGO_SRC` at a different file).
+- It renders 28px tall, width auto, capped at 128px.
+- If you switch to a **full lockup** that already contains the word "Sysora", pass
   `showText={false}` where `<Wordmark />` is used so the name isn't printed twice.
+
+**Favicon** is `src/app/icon.png` — the same mark padded to a 900×900 square with
+transparency, via Next's `icon` file convention (which emits the `<link rel="icon">` and
+handles cache-busting, so don't also declare `metadata.icons`).
 
 ## Setup
 
