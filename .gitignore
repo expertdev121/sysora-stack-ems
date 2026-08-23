@@ -10,6 +10,9 @@ build
 .env.local
 .env*.local
 
+# Bundle of real values for pasting into the Vercel dashboard. Local only.
+vercel-upload.env
+
 *.pem
 npm-debug.log*
 .vercel
