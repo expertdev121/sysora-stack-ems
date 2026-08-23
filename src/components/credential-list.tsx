@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Check, Copy, Eye, EyeOff, KeyRound, Trash2 } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, KeyRound, Pencil, Trash2 } from "lucide-react";
 import { deleteCredential, revealCredential } from "@/app/actions/credentials";
 import { Button } from "@/components/ui/button";
+import { CredentialEditForm, type FormOption } from "@/components/credential-form";
 import type { CredentialSummary } from "@/lib/types";
 
 /** Revealed secrets clear themselves after this long. */
@@ -35,16 +36,21 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-function CredentialRow({
+export function CredentialRow({
   credential,
   canManage,
+  assets,
+  clients,
 }: {
   credential: CredentialSummary;
   canManage: boolean;
+  assets: FormOption[];
+  clients: FormOption[];
 }) {
   const [revealed, setRevealed] = useState<{ username: string | null; secret: string } | null>(
     null,
   );
+  const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -80,7 +86,7 @@ function CredentialRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-[13px] font-medium text-navy">
-            <KeyRound className="size-3.5 text-ink-faint" />
+            <KeyRound className="size-3.5 shrink-0 text-ink-faint" />
             {credential.label}
           </p>
           <p className="truncate text-xs text-ink-muted">
@@ -104,26 +110,41 @@ function CredentialRow({
           </Button>
 
           {canManage ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="quiet"
-              aria-label={`Delete ${credential.label}`}
-              onClick={() =>
-                startTransition(async () => {
-                  const data = new FormData();
-                  data.set("id", credential.id);
-                  const result = await deleteCredential(data);
-                  if (result.ok) toast.success(result.message ?? "Deleted.");
-                  else toast.error(result.error);
-                })
-              }
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="quiet"
+                aria-label={`Edit ${credential.label}`}
+                onClick={() => setEditing((v) => !v)}
+              >
+                <Pencil className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="quiet"
+                aria-label={`Delete ${credential.label}`}
+                onClick={() =>
+                  startTransition(async () => {
+                    const data = new FormData();
+                    data.set("id", credential.id);
+                    const result = await deleteCredential(data);
+                    if (result.ok) toast.success(result.message ?? "Deleted.");
+                    else toast.error(result.error);
+                  })
+                }
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </>
           ) : null}
         </div>
       </div>
+
+      {credential.notes && !editing ? (
+        <p className="mt-1.5 text-xs text-ink-faint">{credential.notes}</p>
+      ) : null}
 
       {revealed ? (
         <div className="mt-2.5 flex flex-col gap-2 border-t border-line pt-2.5">
@@ -148,24 +169,15 @@ function CredentialRow({
           </p>
         </div>
       ) : null}
+
+      {editing && canManage ? (
+        <CredentialEditForm
+          credential={credential}
+          assets={assets}
+          clients={clients}
+          onDone={() => setEditing(false)}
+        />
+      ) : null}
     </li>
-  );
-}
-
-export function CredentialList({
-  credentials,
-  canManage,
-}: {
-  credentials: CredentialSummary[];
-  canManage: boolean;
-}) {
-  if (credentials.length === 0) return null;
-
-  return (
-    <ul className="mt-4 flex flex-col gap-2 border-t border-line pt-4">
-      {credentials.map((credential) => (
-        <CredentialRow key={credential.id} credential={credential} canManage={canManage} />
-      ))}
-    </ul>
   );
 }

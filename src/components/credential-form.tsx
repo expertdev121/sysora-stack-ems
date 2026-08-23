@@ -6,17 +6,164 @@ import { Plus } from "lucide-react";
 import { saveCredential } from "@/app/actions/credentials";
 import { Button } from "@/components/ui/button";
 import { FieldRow, Input, Label, Select, Textarea } from "@/components/ui/field";
+import type { AppRole, CredentialSummary } from "@/lib/types";
+
+export interface FormOption {
+  id: string;
+  name: string;
+}
+
+const ROLE_CHOICES = [
+  { value: "owner", label: "Owner", locked: true },
+  { value: "manager", label: "Manager", locked: false },
+  { value: "employee", label: "Employee", locked: false },
+] as const;
 
 /**
- * Owner-only. Deliberately a <details> so the page stays about the tools, not
- * about credential admin.
+ * The shared field set. Used for both creating and editing so the two can never
+ * drift apart — an edit form missing a field would silently blank it on save.
  */
+function CredentialFields({
+  assets,
+  clients,
+  credential,
+  idPrefix,
+}: {
+  assets: FormOption[];
+  clients: FormOption[];
+  credential?: CredentialSummary;
+  idPrefix: string;
+}) {
+  const isEdit = Boolean(credential);
+
+  return (
+    <>
+      {credential ? <input type="hidden" name="id" value={credential.id} /> : null}
+
+      <FieldRow label="Client" htmlFor={`${idPrefix}-client`}>
+        <Select
+          id={`${idPrefix}-client`}
+          name="client_key"
+          defaultValue={credential?.client_key ?? ""}
+        >
+          <option value="">Unassigned</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
+        </Select>
+      </FieldRow>
+
+      <FieldRow label="Tool" htmlFor={`${idPrefix}-asset`}>
+        <Select
+          id={`${idPrefix}-asset`}
+          name="asset_id"
+          required
+          defaultValue={credential?.asset_id ?? ""}
+        >
+          <option value="" disabled>
+            Choose…
+          </option>
+          {assets.map((asset) => (
+            <option key={asset.id} value={asset.id}>
+              {asset.name}
+            </option>
+          ))}
+        </Select>
+      </FieldRow>
+
+      <FieldRow label="Label" htmlFor={`${idPrefix}-label`} hint="e.g. “Admin login”">
+        <Input
+          id={`${idPrefix}-label`}
+          name="label"
+          required
+          defaultValue={credential?.label ?? ""}
+          placeholder="Admin login"
+        />
+      </FieldRow>
+
+      <FieldRow label="Username or email" htmlFor={`${idPrefix}-username`}>
+        <Input
+          id={`${idPrefix}-username`}
+          name="username"
+          autoComplete="off"
+          defaultValue={credential?.username ?? ""}
+        />
+      </FieldRow>
+
+      <FieldRow
+        label={isEdit ? "New password or token" : "Password or token"}
+        htmlFor={`${idPrefix}-secret`}
+        hint={
+          isEdit
+            ? "Leave blank to keep the current one. Filling it in counts as a rotation."
+            : "Encrypted before it reaches the database."
+        }
+        className="sm:col-span-2"
+      >
+        <Input
+          id={`${idPrefix}-secret`}
+          name="secret"
+          type="password"
+          autoComplete="new-password"
+        />
+      </FieldRow>
+
+      <FieldRow label="Sign-in URL" htmlFor={`${idPrefix}-url`} className="sm:col-span-2">
+        <Input
+          id={`${idPrefix}-url`}
+          name="url"
+          type="url"
+          placeholder="https://…"
+          defaultValue={credential?.url ?? ""}
+        />
+      </FieldRow>
+
+      <FieldRow label="Notes" htmlFor={`${idPrefix}-notes`} className="sm:col-span-2">
+        <Textarea
+          id={`${idPrefix}-notes`}
+          name="notes"
+          placeholder="2FA device, recovery email, gotchas…"
+          defaultValue={credential?.notes ?? ""}
+        />
+      </FieldRow>
+
+      <div className="sm:col-span-2">
+        <Label>Who can reveal this</Label>
+        <div className="mt-1.5 flex flex-wrap gap-4">
+          {ROLE_CHOICES.map((role) => (
+            <label key={role.value} className="flex items-center gap-2 text-[13px] text-navy">
+              <input
+                type="checkbox"
+                name="visible_to_roles"
+                value={role.value}
+                defaultChecked={
+                  role.locked ||
+                  (credential?.visible_to_roles ?? []).includes(role.value as AppRole)
+                }
+                disabled={role.locked}
+                className="size-4 accent-[var(--color-mint)]"
+              />
+              {role.label}
+              {role.locked ? <span className="text-xs text-ink-faint">(always)</span> : null}
+            </label>
+          ))}
+        </div>
+        {/* Owner is disabled above, so its value would not otherwise submit. */}
+        <input type="hidden" name="visible_to_roles" value="owner" />
+      </div>
+    </>
+  );
+}
+
+/** Owner-only create form. Collapsed so the page stays about the tools. */
 export function CredentialForm({
   assets,
   clients,
 }: {
-  assets: { id: string; name: string }[];
-  clients: { key: string; name: string }[];
+  assets: FormOption[];
+  clients: FormOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -41,82 +188,7 @@ export function CredentialForm({
       </summary>
 
       <form ref={formRef} action={onSubmit} className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
-        <FieldRow label="Client" htmlFor="cred-client">
-          <Select id="cred-client" name="client_key" defaultValue="">
-            <option value="">Unassigned</option>
-            {clients.map((client) => (
-              <option key={client.key} value={client.key}>
-                {client.name}
-              </option>
-            ))}
-          </Select>
-        </FieldRow>
-
-        <FieldRow label="Tool" htmlFor="cred-asset">
-          <Select id="cred-asset" name="asset_id" required defaultValue="">
-            <option value="" disabled>
-              Choose…
-            </option>
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.name}
-              </option>
-            ))}
-          </Select>
-        </FieldRow>
-
-        <FieldRow label="Label" htmlFor="cred-label" hint="e.g. “Admin login”">
-          <Input id="cred-label" name="label" required placeholder="Admin login" />
-        </FieldRow>
-
-        <FieldRow label="Username or email" htmlFor="cred-username">
-          <Input id="cred-username" name="username" autoComplete="off" />
-        </FieldRow>
-
-        <FieldRow
-          label="Password or token"
-          htmlFor="cred-secret"
-          hint="Encrypted before it reaches the database."
-        >
-          <Input id="cred-secret" name="secret" type="password" autoComplete="new-password" />
-        </FieldRow>
-
-        <FieldRow label="Sign-in URL" htmlFor="cred-url" className="sm:col-span-2">
-          <Input id="cred-url" name="url" type="url" placeholder="https://…" />
-        </FieldRow>
-
-        <FieldRow label="Notes" htmlFor="cred-notes" className="sm:col-span-2">
-          <Textarea id="cred-notes" name="notes" placeholder="2FA device, recovery email, gotchas…" />
-        </FieldRow>
-
-        <div className="sm:col-span-2">
-          <Label>Who can reveal this</Label>
-          <div className="mt-1.5 flex flex-wrap gap-4">
-            {(
-              [
-                { value: "owner", label: "Owner", locked: true },
-                { value: "manager", label: "Manager", locked: false },
-                { value: "employee", label: "Employee", locked: false },
-              ] as const
-            ).map((role) => (
-              <label key={role.value} className="flex items-center gap-2 text-[13px] text-navy">
-                <input
-                  type="checkbox"
-                  name="visible_to_roles"
-                  value={role.value}
-                  defaultChecked={role.locked}
-                  disabled={role.locked}
-                  className="size-4 accent-[var(--color-mint)]"
-                />
-                {role.label}
-                {role.locked ? <span className="text-xs text-ink-faint">(always)</span> : null}
-              </label>
-            ))}
-          </div>
-          {/* Owner is disabled above, so its value would not be submitted. */}
-          <input type="hidden" name="visible_to_roles" value="owner" />
-        </div>
-
+        <CredentialFields assets={assets} clients={clients} idPrefix="new" />
         <div className="sm:col-span-2">
           <Button type="submit" disabled={pending}>
             {pending ? "Storing…" : "Store credential"}
@@ -124,5 +196,54 @@ export function CredentialForm({
         </div>
       </form>
     </details>
+  );
+}
+
+/** Owner-only inline edit, rendered underneath the credential being changed. */
+export function CredentialEditForm({
+  credential,
+  assets,
+  clients,
+  onDone,
+}: {
+  credential: CredentialSummary;
+  assets: FormOption[];
+  clients: FormOption[];
+  onDone: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+
+  function onSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await saveCredential(formData);
+      if (result.ok) {
+        toast.success(result.message ?? "Updated.");
+        onDone();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  return (
+    <form
+      action={onSubmit}
+      className="mt-3 grid gap-3 rounded-lg border border-mint-line bg-surface p-3 sm:grid-cols-2"
+    >
+      <CredentialFields
+        assets={assets}
+        clients={clients}
+        credential={credential}
+        idPrefix={`edit-${credential.id}`}
+      />
+      <div className="flex gap-2 sm:col-span-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Saving…" : "Save changes"}
+        </Button>
+        <Button type="button" size="sm" variant="quiet" onClick={onDone} disabled={pending}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
