@@ -26,6 +26,18 @@ export async function submitEod(formData: FormData): Promise<ActionResult> {
   const workDone = String(formData.get("work_done") ?? "").trim();
   const blockers = String(formData.get("blockers") ?? "").trim();
 
+  // Optional. An empty value means "prefer not to say" and stores NULL, which
+  // is different from a low score and must not be conflated with one.
+  const rawMood = String(formData.get("mood") ?? "").trim();
+  let mood: number | null = null;
+  if (rawMood) {
+    const parsed = Number(rawMood);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
+      return { ok: false, error: "Pick a number from 1 to 10, or leave it blank." };
+    }
+    mood = parsed;
+  }
+
   if (!workDone) {
     return { ok: false, error: "Write what you worked on today — that's the whole report." };
   }
@@ -42,6 +54,7 @@ export async function submitEod(formData: FormData): Promise<ActionResult> {
       org_id: session.org.id,
       report_date: reportDate,
       summary: workDone.slice(0, 500),
+      mood,
       payload: {
         work_done: workDone,
         blockers: blockers || "None",

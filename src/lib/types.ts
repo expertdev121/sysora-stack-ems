@@ -74,6 +74,8 @@ export interface EodReport {
   report_date: string;
   submission_id: string | null;
   summary: string | null;
+  /** Optional 1–10 self-rating. 1 = rough, 10 = flying. null = not answered. */
+  mood: number | null;
   payload: Record<string, unknown>;
   submitted_at: string;
   source: string;

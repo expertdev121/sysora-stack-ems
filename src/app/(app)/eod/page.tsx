@@ -21,6 +21,27 @@ function locksInLabel(timeZone: string) {
   return hours <= 0 ? `${minutes} min from now` : `about ${hours}h ${minutes}m from now`;
 }
 
+/**
+ * The score as a quiet chip. Mint only at the top of the scale, neutral
+ * otherwise — a low number is information, not an alarm, and colouring it red
+ * would both break the one-saturated-hue rule and punish honesty.
+ */
+function MoodBadge({ mood }: { mood: number | null }) {
+  if (mood === null) return null;
+  return (
+    <span
+      title={`Felt ${mood} out of 10`}
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium tabular ${
+        mood >= 8
+          ? "border-mint-line bg-mint-soft text-mint-deep"
+          : "border-navy-line bg-navy-soft text-navy"
+      }`}
+    >
+      {mood}/10
+    </span>
+  );
+}
+
 function renderValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
@@ -57,6 +78,7 @@ export default async function EodPage() {
           (mineToday.payload as Record<string, unknown>)?.work_done ?? mineToday.summary ?? "",
         ),
         blockers: String((mineToday.payload as Record<string, unknown>)?.blockers ?? ""),
+        mood: mineToday.mood ?? null,
       }
     : null;
 
@@ -169,6 +191,9 @@ export default async function EodPage() {
                           <span className="mt-0.5 line-clamp-1 block text-xs text-ink-muted">
                             {report.summary ?? `${entries.length} fields`}
                           </span>
+                        </span>
+                        <span className="shrink-0">
+                          <MoodBadge mood={report.mood} />
                         </span>
                         <span className="shrink-0 text-xs text-mint-deep group-open:hidden">
                           View
