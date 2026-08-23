@@ -112,6 +112,8 @@ export interface Credential {
   id: string;
   org_id: string;
   asset_id: string;
+  /** Client this login belongs to. Matches a key in src/lib/clients.ts. */
+  client_key: string | null;
   label: string;
   username: string | null;
   /** Encrypted. Never render this, never send it to the browser. */
@@ -129,6 +131,7 @@ export interface Credential {
 export interface CredentialSummary {
   id: string;
   asset_id: string;
+  client_key: string | null;
   label: string;
   username: string | null;
   url: string | null;

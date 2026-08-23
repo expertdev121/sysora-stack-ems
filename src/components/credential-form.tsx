@@ -13,8 +13,10 @@ import { FieldRow, Input, Label, Select, Textarea } from "@/components/ui/field"
  */
 export function CredentialForm({
   assets,
+  clients,
 }: {
   assets: { id: string; name: string }[];
+  clients: { key: string; name: string }[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -39,6 +41,17 @@ export function CredentialForm({
       </summary>
 
       <form ref={formRef} action={onSubmit} className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
+        <FieldRow label="Client" htmlFor="cred-client">
+          <Select id="cred-client" name="client_key" defaultValue="">
+            <option value="">Unassigned</option>
+            {clients.map((client) => (
+              <option key={client.key} value={client.key}>
+                {client.name}
+              </option>
+            ))}
+          </Select>
+        </FieldRow>
+
         <FieldRow label="Tool" htmlFor="cred-asset">
           <Select id="cred-asset" name="asset_id" required defaultValue="">
             <option value="" disabled>

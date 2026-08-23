@@ -90,6 +90,7 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
 
   const id = String(formData.get("id") ?? "").trim();
   const assetId = String(formData.get("asset_id") ?? "").trim();
+  const clientKey = String(formData.get("client_key") ?? "").trim() || null;
   const label = String(formData.get("label") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim() || null;
   const secret = String(formData.get("secret") ?? "");
@@ -110,6 +111,7 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
   if (id) {
     const update: Record<string, unknown> = {
       asset_id: assetId,
+      client_key: clientKey,
       label,
       username,
       url,
@@ -130,6 +132,7 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
   const { error } = await supabase.from("credentials").insert({
     org_id: session.org.id,
     asset_id: assetId,
+    client_key: clientKey,
     label,
     username,
     secret_ciphertext: encryptSecret(secret),

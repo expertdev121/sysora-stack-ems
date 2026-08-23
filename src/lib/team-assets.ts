@@ -47,6 +47,12 @@ export const TEAM_ASSETS: TeamAsset[] = [
       "Custom GPT for building prompts on the fly. No login of its own — uses your ChatGPT account.",
     href: "https://chatgpt.com/g/g-686648dd496081918f2df808437bd55f-superhuman-on-the-fly-prompt-builder",
   },
+  {
+    id: "justpaste",
+    name: "JustPaste.it",
+    description: "Quick copy-and-paste scratch pad for sharing snippets. No login needed.",
+    href: "https://justpaste.it/",
+  },
 ];
 
 export function assetsForRole(role: AppRole): TeamAsset[] {
