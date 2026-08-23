@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Sysora Stack — design tokens
+
+   Rules this palette obeys:
+     · Primary Mint #00C896 for CTAs and accents
+     · Mint Deep  #059669 for hover states and links
+     · Deep Navy  #1A1A2E for headings and the wordmark
+     · Exactly ONE saturated hue (mint) in any given view
+     · No pure black anywhere — the darkest ink is navy
+     · No generic SaaS blue
+
+   Attendance statuses are the hard case: three states normally reach for
+   green/red/amber, which would break the one-saturated-hue rule. Instead the
+   states are distinguished by FILL rather than hue — solid mint, half-filled
+   mint, solid cool grey, navy tint — so the grid stays readable while only
+   mint is saturated.
+   ============================================================================= */
+
+@theme {
+  /* Brand */
+  --color-mint: #00c896;
+  --color-mint-deep: #059669;
+  --color-mint-soft: #e6faf3;
+  --color-mint-line: #a8ecd6;
+
+  --color-navy: #1a1a2e;
+  --color-navy-muted: #3d3d57;
+  --color-navy-soft: #ebebf1;
+  --color-navy-line: #d5d5e0;
+
+  /* Neutral surfaces — warm-neutral, never blue-grey, never pure black */
+  --color-canvas: #f7f8f8;
+  --color-surface: #ffffff;
+  --color-line: #e6e8e8;
+  --color-line-strong: #d3d6d6;
+  --color-ink: #1a1a2e;
+  --color-ink-muted: #64707a;
+  --color-ink-faint: #98a2aa;
+
+  /* Attendance fills */
+  --color-status-absent: #c9ccd4;
+  --color-status-absent-ink: #4a4f5c;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", sans-serif;
+
+  --radius-card: 0.75rem;
+}
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-navy);
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: var(--color-mint-deep);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-mint);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Half Day reads as a literally half-filled cell — instant to parse in a grid
+   without introducing a second saturated colour. */
+.status-fill-half {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-mint) 0%,
+    var(--color-mint) 50%,
+    var(--color-mint-soft) 50%,
+    var(--color-mint-soft) 100%
+  );
+}
+
+/* Approved leave: navy tint with a soft diagonal so it never reads as "absent". */
+.status-fill-leave {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-navy-soft) 0px,
+    var(--color-navy-soft) 4px,
+    #f4f4f8 4px,
+    #f4f4f8 8px
+  );
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

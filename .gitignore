@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+build
+.DS_Store
+
+# Secrets. The service role key bypasses every RLS policy in the project —
+# it must never be committed and never reach the browser.
+.env
+.env.local
+.env*.local
+
+*.pem
+npm-debug.log*
+.vercel
+next-env.d.ts
+tsconfig.tsbuildinfo
