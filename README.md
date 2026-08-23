@@ -50,6 +50,19 @@ Every table carries `org_id` from day one. Adding a second org later is configur
 
 ---
 
+## Your logo
+
+Drop the file at **`public/logo.svg`** and it replaces the navy "S" lettermark in the
+sidebar and on the login screen. Nothing else to change — `src/components/wordmark.tsx`
+picks it up automatically and falls back to the lettermark if the file is missing or fails
+to load, so the header is never a broken image.
+
+- SVG is best (crisp at any size). A PNG works too — rename it `logo.svg`'s extension in
+  `LOGO_SRC` at the top of `wordmark.tsx`.
+- It renders at 28px tall, width auto, capped at 128px.
+- If your logo is a **full lockup** that already contains the word "Sysora", pass
+  `showText={false}` where `<Wordmark />` is used so the name isn't printed twice.
+
 ## Setup
 
 ### 1. Environment

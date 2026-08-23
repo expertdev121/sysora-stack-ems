@@ -3,17 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarCheck2, LayoutDashboard, LogOut, NotebookPen, Plane, Users } from "lucide-react";
+import {
+  CalendarCheck2,
+  LayoutDashboard,
+  LayoutGrid,
+  LogOut,
+  NotebookPen,
+  Plane,
+  Users,
+} from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { localTime, zoneLabel } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/lib/types";
 
+/** Visible to every role — Owner, Manager and Employee alike. */
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck2 },
   { href: "/leave", label: "Leave", icon: Plane },
   { href: "/eod", label: "EOD Report", icon: NotebookPen },
+  { href: "/assets", label: "Team assets", icon: LayoutGrid },
 ] as const;
 
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -98,7 +108,9 @@ export function AppSidebar({
                 href="/team"
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors",
-                  pathname.startsWith("/team")
+                  // Exact match: a startsWith("/team") test would also light up
+                  // for any future /team-* route.
+                  pathname === "/team"
                     ? "bg-mint-soft font-medium text-mint-deep"
                     : "text-ink-muted hover:bg-canvas hover:text-navy",
                 )}
