@@ -26,6 +26,13 @@ export const TEAM_ASSETS: TeamAsset[] = [
       "Sprint board for the SS project — tickets, statuses and what you're picking up next.",
     href: "https://sysorastack.atlassian.net/jira/software/projects/SS/boards/2?filter=&groupBy=none",
   },
+  {
+    id: "n8n",
+    name: "Sysora n8n",
+    description:
+      "Automation workflows, including the EOD form and the webhook that feeds reports back into this app.",
+    href: "https://n8n-production-db72.up.railway.app/home/workflows",
+  },
 ];
 
 export function assetsForRole(role: AppRole): TeamAsset[] {
