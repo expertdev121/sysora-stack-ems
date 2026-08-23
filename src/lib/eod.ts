@@ -16,32 +16,10 @@ export const EOD_PARAMS = {
   token: process.env.N8N_EOD_PARAM_TOKEN || "token",
 } as const;
 
-export function eodFormBaseUrl(): string | null {
-  // EOD_FORM_URL is the current name; N8N_EOD_FORM_URL is kept as a fallback
-  // because the form is no longer necessarily an n8n one.
-  const raw = (process.env.EOD_FORM_URL || process.env.N8N_EOD_FORM_URL || "").trim();
-  if (!raw) return null;
-  try {
-    const url = new URL(raw);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Whether to append the signed-in person's details to the form URL.
- *
- * Only worth doing for a form that reads query parameters — n8n's Form Trigger
- * does, a Notion embed does not. Set EOD_FORM_PREFILL=off for anything that
- * ignores them, so the URL stays clean and the UI stops promising a prefill
- * that will not happen.
- */
-export function prefillEnabled(): boolean {
-  const raw = (process.env.EOD_FORM_PREFILL ?? "on").trim().toLowerCase();
-  return raw !== "off" && raw !== "false" && raw !== "0" && raw !== "no";
-}
+// The EOD form is now native (src/components/eod-form.tsx) and writes straight
+// to public.eod_reports, so there is no embedded form URL and nothing to
+// prefill. What remains here supports the inbound webhook only, which is kept
+// as an optional way to pipe reports in from elsewhere.
 
 /**
  * Ties a submission to a person for a given day.
@@ -70,28 +48,6 @@ export function verifyEodToken(
   const a = Buffer.from(token);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
-}
-
-export function buildEodFormUrl(input: {
-  profileId: string;
-  fullName: string;
-  email: string;
-  reportDate: string;
-}): string | null {
-  const base = eodFormBaseUrl();
-  if (!base) return null;
-  if (!prefillEnabled()) return base;
-
-  const url = new URL(base);
-  url.searchParams.set(EOD_PARAMS.userId, input.profileId);
-  url.searchParams.set(EOD_PARAMS.name, input.fullName);
-  url.searchParams.set(EOD_PARAMS.email, input.email);
-  url.searchParams.set(EOD_PARAMS.date, input.reportDate);
-
-  const token = eodToken(input.profileId, input.reportDate);
-  if (token) url.searchParams.set(EOD_PARAMS.token, token);
-
-  return url.toString();
 }
 
 /** First non-empty string value among the given keys, case-insensitively. */

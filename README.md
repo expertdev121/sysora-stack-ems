@@ -43,7 +43,7 @@ Built to be handed to contractor #1 on day one and nothing more.
 - **Auth** — Owner creates accounts with a temporary password. No public signup. First sign-in is hard-gated to a change-password screen, so the Owner does not keep a working password.
 - **Attendance** — one status per person per day: Present, Half Day, Absent. No clock-in, no hours. Locked to the person's own timezone date. Monthly team grid with per-status counts, exportable to CSV for payroll.
 - **Leave** — request → approve/reject, against a fixed 12 paid days per calendar year. Owner sees month-by-month usage per person.
-- **EOD Report** — your n8n form embedded in an iframe, prefilled with the signed-in person's id, name and email. n8n POSTs the submission back to a secured webhook; the dashboard shows history and flags who hasn't filed today.
+- **EOD Report** — a native form that writes straight to `public.eod_reports`. No embed, no integration, nothing to keep in sync. Scoped exactly like attendance: your own row, your own local date, editable until your local midnight and read-only after. The dashboard shows history and flags who hasn't filed today.
 - **Pay** — monthly amount is visible to the Owner only, enforced at the database. Everyone sees the salary *date* (the 5th).
 
 Every table carries `org_id` from day one. Adding a second org later is configuration, not a migration.

@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
-import { EodFrame } from "@/components/eod-frame";
+import { EodForm } from "@/components/eod-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Callout, EmptyState } from "@/components/ui/callout";
 import { StatusChip } from "@/components/ui/status";
 import { requireSession, isStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { buildEodFormUrl, eodFormBaseUrl, prefillEnabled, EOD_PARAMS } from "@/lib/eod";
-import { humanDate, localDateISO } from "@/lib/dates";
+import { humanDate, localDateISO, msUntilLocalMidnight } from "@/lib/dates";
 import type { EodReport, Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "EOD Report" };
 
-const HIDDEN_KEYS = new Set(
-  [EOD_PARAMS.userId, EOD_PARAMS.token, "submission_id", "submissionId", "id"].map((k) =>
-    k.toLowerCase(),
-  ),
-);
+/** Identity and plumbing keys — not part of what someone wrote. */
+const HIDDEN_KEYS = new Set(["name", "email", "date", "user_id", "token", "submission_id", "id"]);
+
+function locksInLabel(timeZone: string) {
+  const ms = msUntilLocalMidnight(timeZone);
+  const hours = Math.floor(ms / 3_600_000);
+  const minutes = Math.round((ms % 3_600_000) / 60_000);
+  return hours <= 0 ? `${minutes} min from now` : `about ${hours}h ${minutes}m from now`;
+}
 
 function renderValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
@@ -33,19 +36,8 @@ export default async function EodPage() {
 
   const todayISO = localDateISO(session.profile.timezone);
 
-  const formUrl = buildEodFormUrl({
-    profileId: session.userId,
-    fullName: session.profile.full_name,
-    email: session.email,
-    reportDate: todayISO,
-  });
-
   const [{ data: reportRows }, { data: peopleRows }] = await Promise.all([
-    supabase
-      .from("eod_reports")
-      .select("*")
-      .order("report_date", { ascending: false })
-      .limit(60),
+    supabase.from("eod_reports").select("*").order("report_date", { ascending: false }).limit(60),
     supabase.from("profiles").select("id, full_name, timezone, is_active").order("full_name"),
   ]);
 
@@ -57,9 +49,19 @@ export default async function EodPage() {
   const nameOf = new Map(people.map((p) => [p.id, p.full_name]));
 
   const myReports = reports.filter((r) => r.profile_id === session.userId);
-  const submittedToday = myReports.some((r) => r.report_date === todayISO);
+  const mineToday = myReports.find((r) => r.report_date === todayISO) ?? null;
 
-  // "Today" is evaluated in each person's own timezone, not the server's.
+  const existing = mineToday
+    ? {
+        work_done: String(
+          (mineToday.payload as Record<string, unknown>)?.work_done ?? mineToday.summary ?? "",
+        ),
+        blockers: String((mineToday.payload as Record<string, unknown>)?.blockers ?? ""),
+      }
+    : null;
+
+  // "Today" is each person's own local date, so nobody is flagged late merely
+  // for being in a different timezone.
   const teamToday = people
     .filter((p) => p.is_active)
     .map((person) => {
@@ -73,45 +75,37 @@ export default async function EodPage() {
       };
     });
 
-  const base = eodFormBaseUrl();
-  let formHost = "your n8n instance";
-  if (base) {
-    try {
-      formHost = new URL(base).host;
-    } catch {
-      /* keep the fallback label */
-    }
-  }
-
   return (
     <>
       <PageHeader
         title="EOD Report"
-        description="Fill in your end-of-day report here without leaving the app."
+        description="Write your end-of-day here. It saves straight into the app."
         actions={
           <StatusChip
-            state={submittedToday ? "present" : "unmarked"}
-            label={submittedToday ? "Submitted today" : "Not submitted today"}
+            state={mineToday ? "present" : "unmarked"}
+            label={mineToday ? "Filed today" : "Not filed today"}
           />
         }
       />
 
-      {formUrl ? (
-        <EodFrame src={formUrl} formHost={formHost} prefilled={prefillEnabled()} />
-      ) : (
-        <Callout tone="warn" title="No form URL configured yet.">
-          Set <code className="rounded bg-surface px-1 py-0.5 text-[12px]">EOD_FORM_URL</code> in
-          your environment to the form address. Everything else on this page already works.
-        </Callout>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Today — {humanDate(todayISO)}</CardTitle>
+          <CardDescription>
+            {session.profile.timezone} · your own date, not the server&rsquo;s
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EodForm existing={existing} locksInLabel={locksInLabel(session.profile.timezone)} />
+        </CardContent>
+      </Card>
 
       {staff ? (
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Who has submitted today</CardTitle>
+            <CardTitle>Who has filed today</CardTitle>
             <CardDescription>
-              Checked against each person&rsquo;s own local date, so nobody is flagged late just
-              for being in a different timezone.
+              Checked against each person&rsquo;s own local date.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -126,7 +120,7 @@ export default async function EodPage() {
                   </div>
                   <StatusChip
                     state={submitted ? "present" : "unmarked"}
-                    label={submitted ? "Submitted" : "Missing"}
+                    label={submitted ? "Filed" : "Missing"}
                   />
                 </li>
               ))}
@@ -137,23 +131,22 @@ export default async function EodPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>{staff ? "Recent submissions" : "Your EOD history"}</CardTitle>
+          <CardTitle>{staff ? "Recent reports" : "Your EOD history"}</CardTitle>
           <CardDescription>
-            Stored exactly as it arrived, so a change to the form can never break this list. This
-            fills up only once something POSTs submissions to the return webhook — the embedded
-            form does not do that on its own.
+            Yesterday and earlier are read-only — that&rsquo;s what makes it a daily record.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {reports.length === 0 ? (
             <EmptyState title="No EOD reports yet.">
-              They&rsquo;ll appear here the moment n8n POSTs the first one to the webhook.
+              Yours will appear here as soon as you file one above.
             </EmptyState>
           ) : (
             <ul className="divide-y divide-line">
               {reports.map((report) => {
                 const entries = Object.entries(report.payload ?? {}).filter(
-                  ([key]) => !HIDDEN_KEYS.has(key.toLowerCase()),
+                  ([key, value]) =>
+                    !HIDDEN_KEYS.has(key.toLowerCase()) && value !== "" && value !== null,
                 );
 
                 return (
@@ -167,6 +160,10 @@ export default async function EodPage() {
                               <span className="ml-2 font-normal text-ink-muted">
                                 {nameOf.get(report.profile_id) ?? "Unknown"}
                               </span>
+                            ) : null}
+                            {report.report_date === todayISO &&
+                            report.profile_id === session.userId ? (
+                              <span className="ml-2 text-[11px] text-mint-deep">today</span>
                             ) : null}
                           </span>
                           <span className="mt-0.5 line-clamp-1 block text-xs text-ink-muted">
@@ -183,11 +180,13 @@ export default async function EodPage() {
 
                       <dl className="mt-3 grid gap-2 rounded-lg border border-line bg-canvas p-3">
                         {entries.length === 0 ? (
-                          <p className="text-xs text-ink-muted">Empty payload.</p>
+                          <p className="text-xs text-ink-muted">Empty report.</p>
                         ) : (
                           entries.map(([key, value]) => (
-                            <div key={key} className="grid gap-0.5 sm:grid-cols-[10rem_1fr]">
-                              <dt className="text-xs font-medium text-ink-muted">{key}</dt>
+                            <div key={key} className="grid gap-0.5 sm:grid-cols-[9rem_1fr]">
+                              <dt className="text-xs font-medium text-ink-muted">
+                                {key.replace(/[-_]+/g, " ")}
+                              </dt>
                               <dd className="text-[13px] whitespace-pre-wrap text-navy">
                                 {renderValue(value)}
                               </dd>
@@ -203,6 +202,14 @@ export default async function EodPage() {
           )}
         </CardContent>
       </Card>
+
+      {staff ? (
+        <Callout className="mt-6">
+          Reports written here are stored directly in <code>public.eod_reports</code>. The n8n
+          webhook at <code>/api/webhooks/n8n/eod</code> still works if you ever want to pipe
+          submissions in from elsewhere — nothing depends on it now.
+        </Callout>
+      ) : null}
     </>
   );
 }
