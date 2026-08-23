@@ -127,6 +127,18 @@ export interface Credential {
   updated_at: string;
 }
 
+export type GrantMode = "allow" | "deny";
+
+/**
+ * A per-person exception to the role-based visibility on a credential.
+ * 'deny' wins over 'allow'; both win over the role list.
+ */
+export interface CredentialGrant {
+  credential_id: string;
+  profile_id: string;
+  mode: GrantMode;
+}
+
 /** What the client is allowed to know about a credential before revealing it. */
 export interface CredentialSummary {
   id: string;

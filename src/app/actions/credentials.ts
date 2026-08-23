@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth";
 import { decryptSecret, encryptSecret, encryptionConfigured } from "@/lib/crypto";
-import type { ActionResult, AppRole } from "@/lib/types";
+import type { ActionResult, AppRole, GrantMode } from "@/lib/types";
 
 const ROLES: AppRole[] = ["owner", "manager", "employee"];
 
@@ -35,22 +35,23 @@ export async function revealCredential(formData: FormData): Promise<RevealResult
 
   const { data: credential, error } = await supabase
     .from("credentials")
-    .select("id, org_id, username, secret_ciphertext, visible_to_roles")
+    .select("id, org_id, username, secret_ciphertext")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       org_id: string;
       username: string | null;
       secret_ciphertext: string;
-      visible_to_roles: AppRole[];
     }>();
 
+  // RLS is the authority here, not a check in this function. The select above
+  // runs on the caller's own anon-key client, and credentials_select_visible
+  // already applies the full rule: Owner always, then an explicit per-person
+  // deny, then an explicit per-person allow, then the role list. Re-checking
+  // visible_to_roles here would wrongly refuse someone who has been granted
+  // this credential personally despite their role.
   if (error || !credential) {
     return { ok: false, error: "That credential isn't available to you." };
-  }
-
-  if (!credential.visible_to_roles.includes(session.profile.role)) {
-    return { ok: false, error: "That credential isn't shared with your role." };
   }
 
   let secret: string;
@@ -123,28 +124,84 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
     const { error } = await supabase.from("credentials").update(update).eq("id", id);
     if (error) return { ok: false, error: humanise(error.message) };
 
+    const grantError = await syncGrants(supabase, session.org.id, id, formData);
+    if (grantError) return { ok: false, error: grantError };
+
     revalidatePath("/assets");
     return { ok: true, message: "Updated." };
   }
 
   if (!secret) return { ok: false, error: "Enter the password or token to store." };
 
-  const { error } = await supabase.from("credentials").insert({
-    org_id: session.org.id,
-    asset_id: assetId,
-    client_key: clientKey,
-    label,
-    username,
-    secret_ciphertext: encryptSecret(secret),
-    url,
-    notes,
-    visible_to_roles: visibleTo.length > 0 ? visibleTo : ["owner"],
-  });
+  const { data: created, error } = await supabase
+    .from("credentials")
+    .insert({
+      org_id: session.org.id,
+      asset_id: assetId,
+      client_key: clientKey,
+      label,
+      username,
+      secret_ciphertext: encryptSecret(secret),
+      url,
+      notes,
+      visible_to_roles: visibleTo.length > 0 ? visibleTo : ["owner"],
+    })
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) return { ok: false, error: humanise(error.message) };
 
+  if (created) {
+    const grantError = await syncGrants(supabase, session.org.id, created.id, formData);
+    if (grantError) return { ok: false, error: grantError };
+  }
+
   revalidatePath("/assets");
   return { ok: true, message: "Stored." };
+}
+
+/**
+ * Replace the per-person exceptions for one credential.
+ *
+ * The form submits one `grant:<profileId>` field per active person, valued
+ * "" (follow the role list), "allow" or "deny". Rewriting the whole set rather
+ * than diffing means a person removed from the form cannot leave a stale grant
+ * behind — which, for a 'deny', would be a silent lockout nobody can explain.
+ */
+async function syncGrants(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orgId: string,
+  credentialId: string,
+  formData: FormData,
+): Promise<string | null> {
+  const rows: { org_id: string; credential_id: string; profile_id: string; mode: GrantMode }[] = [];
+  let sawAnyGrantField = false;
+
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("grant:")) continue;
+    sawAnyGrantField = true;
+
+    const profileId = key.slice("grant:".length);
+    const mode = String(value);
+    if (mode !== "allow" && mode !== "deny") continue;
+
+    rows.push({ org_id: orgId, credential_id: credentialId, profile_id: profileId, mode });
+  }
+
+  // A form that carried no grant fields at all (e.g. an older client) must not
+  // be read as "clear every exception".
+  if (!sawAnyGrantField) return null;
+
+  const { error: clearError } = await supabase
+    .from("credential_grants")
+    .delete()
+    .eq("credential_id", credentialId);
+  if (clearError) return clearError.message;
+
+  if (rows.length === 0) return null;
+
+  const { error: insertError } = await supabase.from("credential_grants").insert(rows);
+  return insertError ? insertError.message : null;
 }
 
 export async function deleteCredential(formData: FormData): Promise<ActionResult> {

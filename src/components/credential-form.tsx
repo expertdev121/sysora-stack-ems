@@ -6,11 +6,17 @@ import { Plus } from "lucide-react";
 import { saveCredential } from "@/app/actions/credentials";
 import { Button } from "@/components/ui/button";
 import { FieldRow, Input, Label, Select, Textarea } from "@/components/ui/field";
-import type { AppRole, CredentialSummary } from "@/lib/types";
+import type { AppRole, CredentialSummary, GrantMode } from "@/lib/types";
 
 export interface FormOption {
   id: string;
   name: string;
+}
+
+export interface PersonOption {
+  id: string;
+  name: string;
+  role: AppRole;
 }
 
 const ROLE_CHOICES = [
@@ -26,11 +32,15 @@ const ROLE_CHOICES = [
 function CredentialFields({
   assets,
   clients,
+  people,
+  grants,
   credential,
   idPrefix,
 }: {
   assets: FormOption[];
   clients: FormOption[];
+  people: PersonOption[];
+  grants?: Record<string, GrantMode>;
   credential?: CredentialSummary;
   idPrefix: string;
 }) {
@@ -153,6 +163,42 @@ function CredentialFields({
         {/* Owner is disabled above, so its value would not otherwise submit. */}
         <input type="hidden" name="visible_to_roles" value="owner" />
       </div>
+
+      {people.length > 0 ? (
+        <div className="sm:col-span-2">
+          <Label>Per-person exceptions</Label>
+          <p className="mt-0.5 mb-2 text-xs text-ink-muted">
+            Leave on <strong>Follow roles</strong> unless someone needs an exception.{" "}
+            <strong>Never</strong> revokes it from that person even though their role allows it;{" "}
+            <strong>Always</strong> gives it to them even though their role does not — that&rsquo;s
+            how you hand one login to a single person.
+          </p>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {people.map((person) => (
+              <label
+                key={person.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-line bg-canvas px-3 py-1.5"
+              >
+                <span className="min-w-0 truncate text-[13px] text-navy">
+                  {person.name}
+                  <span className="ml-1.5 text-xs text-ink-faint capitalize">{person.role}</span>
+                </span>
+                <Select
+                  name={`grant:${person.id}`}
+                  defaultValue={grants?.[person.id] ?? ""}
+                  aria-label={`Access for ${person.name}`}
+                  className="h-8 w-36 shrink-0 text-[13px]"
+                >
+                  <option value="">Follow roles</option>
+                  <option value="allow">Always</option>
+                  <option value="deny">Never</option>
+                </Select>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -161,9 +207,11 @@ function CredentialFields({
 export function CredentialForm({
   assets,
   clients,
+  people,
 }: {
   assets: FormOption[];
   clients: FormOption[];
+  people: PersonOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -188,7 +236,7 @@ export function CredentialForm({
       </summary>
 
       <form ref={formRef} action={onSubmit} className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
-        <CredentialFields assets={assets} clients={clients} idPrefix="new" />
+        <CredentialFields assets={assets} clients={clients} people={people} idPrefix="new" />
         <div className="sm:col-span-2">
           <Button type="submit" disabled={pending}>
             {pending ? "Storing…" : "Store credential"}
@@ -204,11 +252,15 @@ export function CredentialEditForm({
   credential,
   assets,
   clients,
+  people,
+  grants,
   onDone,
 }: {
   credential: CredentialSummary;
   assets: FormOption[];
   clients: FormOption[];
+  people: PersonOption[];
+  grants?: Record<string, GrantMode>;
   onDone: () => void;
 }) {
   const [pending, startTransition] = useTransition();
@@ -233,6 +285,8 @@ export function CredentialEditForm({
       <CredentialFields
         assets={assets}
         clients={clients}
+        people={people}
+        grants={grants}
         credential={credential}
         idPrefix={`edit-${credential.id}`}
       />

@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { encryptionConfigured } from "@/lib/crypto";
 import { assetHost, assetsForRole, toolOptions } from "@/lib/team-assets";
 import { CLIENTS } from "@/lib/clients";
-import type { CredentialSummary } from "@/lib/types";
+import type { CredentialGrant, CredentialSummary, GrantMode, Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Team assets" };
 
@@ -22,12 +22,32 @@ export default async function TeamAssetsPage() {
 
   // secret_ciphertext is deliberately NOT selected. Nothing encrypted ever
   // reaches this page's HTML — decryption happens only in the reveal action.
-  const { data: credentialRows } = await supabase
-    .from("credentials")
-    .select("id, asset_id, client_key, label, username, url, notes, visible_to_roles, rotated_at")
-    .order("label");
+  const [{ data: credentialRows }, { data: peopleRows }, { data: grantRows }] = await Promise.all([
+    supabase
+      .from("credentials")
+      .select("id, asset_id, client_key, label, username, url, notes, visible_to_roles, rotated_at")
+      .order("label"),
+    // Employees can only read their own profile, so this list is populated for
+    // staff and empty for everyone else — which is fine, since only the Owner
+    // sees the sharing controls that use it.
+    supabase
+      .from("profiles")
+      .select("id, full_name, role, is_active")
+      .eq("is_active", true)
+      .order("full_name"),
+    supabase.from("credential_grants").select("credential_id, profile_id, mode"),
+  ]);
 
   const credentials = (credentialRows ?? []) as CredentialSummary[];
+
+  const people = ((peopleRows ?? []) as Pick<Profile, "id" | "full_name" | "role">[])
+    .filter((p) => p.id !== profile.id)
+    .map((p) => ({ id: p.id, name: p.full_name, role: p.role }));
+
+  const grantsByCredential: Record<string, Record<string, GrantMode>> = {};
+  for (const grant of (grantRows ?? []) as CredentialGrant[]) {
+    (grantsByCredential[grant.credential_id] ??= {})[grant.profile_id] = grant.mode;
+  }
 
   const assetOptions = toolOptions(credentials.map((c) => c.asset_id));
   const clientOptions = CLIENTS.map((c) => ({ id: c.key, name: c.name }));
@@ -86,12 +106,14 @@ export default async function TeamAssetsPage() {
           canManage={isOwner}
           assets={assetOptions}
           clients={clientOptions}
+          people={people}
+          grantsByCredential={grantsByCredential}
         />
       </section>
 
       {isOwner ? (
         <div className="mt-8">
-          <CredentialForm assets={assetOptions} clients={clientOptions} />
+          <CredentialForm assets={assetOptions} clients={clientOptions} people={people} />
           <p className="mt-3 text-xs text-ink-muted">
             Secrets are encrypted with AES-256-GCM before they reach the database, using a key
             held in the environment rather than in Postgres. A shared login cannot be revoked for

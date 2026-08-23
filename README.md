@@ -64,7 +64,31 @@ separate password manager.
   means an attacker needs both the database *and* the deployment env.
 - Ciphertext never reaches the browser. The page selects every column *except*
   `secret_ciphertext`; decryption happens only in the `revealCredential` server action.
-- Owner-only by default, per-credential `visible_to_roles` to widen it.
+### Who can see a credential
+
+Shared with the whole team by default. Access is decided in this order, and the
+first rule that matches wins:
+
+| # | Rule | Beats |
+|---|---|---|
+| 1 | You are the Owner | everything |
+| 2 | Per-person **Never** | the role list, and an Always |
+| 3 | Per-person **Always** | the role list |
+| 4 | Your role is in `credentials.visible_to_roles` | — |
+
+**Deny beats allow on purpose** — revoking is the operation you cannot afford to have
+silently overridden.
+
+This covers both shapes you need from one control:
+
+- *Revoke one login from one person* — leave the roles alone, mark them **Never**.
+- *Give one login to one person only* (e.g. the Upwork account for the BDE) — set the
+  roles to Owner-only, mark that person **Always**.
+
+The whole rule lives in `public.auth_can_see_credential()` and is enforced by RLS, not by
+the UI. `revealCredential` deliberately does **not** re-check the role list: doing so would
+refuse someone who holds a personal grant despite their role.
+
 - **Every reveal is recorded** in `credential_reveals`. That trail is the offboarding
   checklist — when someone leaves, it tells you exactly which shared logins to rotate.
 

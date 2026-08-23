@@ -5,10 +5,10 @@ import { Search, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/callout";
 import { CredentialRow } from "@/components/credential-list";
-import type { FormOption } from "@/components/credential-form";
+import type { FormOption, PersonOption } from "@/components/credential-form";
 import { clientHint, clientName, sortClientKeys } from "@/lib/clients";
 import { toolLabel } from "@/lib/team-assets";
-import type { CredentialSummary } from "@/lib/types";
+import type { CredentialSummary, GrantMode } from "@/lib/types";
 
 function groupBy<T, K extends string | null>(items: T[], key: (item: T) => K) {
   return items.reduce<Map<K, T[]>>((acc, item) => {
@@ -52,11 +52,15 @@ export function CredentialBrowser({
   canManage,
   assets,
   clients,
+  people,
+  grantsByCredential,
 }: {
   credentials: CredentialSummary[];
   canManage: boolean;
   assets: FormOption[];
   clients: FormOption[];
+  people: PersonOption[];
+  grantsByCredential: Record<string, Record<string, GrantMode>>;
 }) {
   const [query, setQuery] = useState("");
 
@@ -145,6 +149,8 @@ export function CredentialBrowser({
                             canManage={canManage}
                             assets={assets}
                             clients={clients}
+                            people={people}
+                            grants={grantsByCredential[credential.id]}
                           />
                         ))}
                       </ul>

@@ -5,8 +5,12 @@ import { toast } from "sonner";
 import { Check, Copy, Eye, EyeOff, KeyRound, Pencil, Trash2 } from "lucide-react";
 import { deleteCredential, revealCredential } from "@/app/actions/credentials";
 import { Button } from "@/components/ui/button";
-import { CredentialEditForm, type FormOption } from "@/components/credential-form";
-import type { CredentialSummary } from "@/lib/types";
+import {
+  CredentialEditForm,
+  type FormOption,
+  type PersonOption,
+} from "@/components/credential-form";
+import type { CredentialSummary, GrantMode } from "@/lib/types";
 
 /** Revealed secrets clear themselves after this long. */
 const AUTO_HIDE_MS = 45_000;
@@ -41,11 +45,15 @@ export function CredentialRow({
   canManage,
   assets,
   clients,
+  people,
+  grants,
 }: {
   credential: CredentialSummary;
   canManage: boolean;
   assets: FormOption[];
   clients: FormOption[];
+  people: PersonOption[];
+  grants?: Record<string, GrantMode>;
 }) {
   const [revealed, setRevealed] = useState<{ username: string | null; secret: string } | null>(
     null,
@@ -146,6 +154,21 @@ export function CredentialRow({
         <p className="mt-1.5 text-xs text-ink-faint">{credential.notes}</p>
       ) : null}
 
+      {canManage && grants && Object.keys(grants).length > 0 && !editing ? (
+        <p className="mt-1.5 text-xs text-ink-muted">
+          {Object.values(grants).filter((m) => m === "deny").length > 0
+            ? `${Object.values(grants).filter((m) => m === "deny").length} revoked`
+            : null}
+          {Object.values(grants).filter((m) => m === "deny").length > 0 &&
+          Object.values(grants).filter((m) => m === "allow").length > 0
+            ? " · "
+            : null}
+          {Object.values(grants).filter((m) => m === "allow").length > 0
+            ? `${Object.values(grants).filter((m) => m === "allow").length} granted directly`
+            : null}
+        </p>
+      ) : null}
+
       {revealed ? (
         <div className="mt-2.5 flex flex-col gap-2 border-t border-line pt-2.5">
           {revealed.username ? (
@@ -175,6 +198,8 @@ export function CredentialRow({
           credential={credential}
           assets={assets}
           clients={clients}
+          people={people}
+          grants={grants}
           onDone={() => setEditing(false)}
         />
       ) : null}
