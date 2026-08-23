@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarClock } from "lucide-react";
+import { ArrowRight, CalendarClock, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status";
@@ -8,8 +8,10 @@ import { Callout, EmptyState } from "@/components/ui/callout";
 import { TimezoneForm } from "@/components/person-admin";
 import { requireSession, isStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { onboardingAsset } from "@/lib/team-assets";
 import {
   addDaysISO,
+  diffDaysISO,
   humanDate,
   humanDateRange,
   localDateISO,
@@ -19,6 +21,9 @@ import {
 import type { AttendanceStatus, DayState, LeaveRequest, Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
+
+/** How long after someone joins the onboarding banner stays on their dashboard. */
+const ONBOARDING_BANNER_DAYS = 30;
 
 /** The zones this team actually works across. Any IANA zone is valid in the
  *  database; this is just the short list people pick from. */
@@ -120,6 +125,13 @@ export default async function DashboardPage() {
   );
 
   const salaryDate = nextSalaryDate(todayISO, session.org.salary_day);
+
+  // The onboarding guide is prominent while it is actually useful, then gets
+  // out of the way. A permanent banner is a banner nobody reads, and this page
+  // is meant to answer "what do I owe today".
+  const onboarding = onboardingAsset();
+  const daysSinceJoining = diffDaysISO(session.profile.joined_on, todayISO);
+  const isNewJoiner = daysSinceJoining >= 0 && daysSinceJoining <= ONBOARDING_BANNER_DAYS;
   const TIMEZONE_CHOICES = Array.from(new Set([session.profile.timezone, ...BASE_ZONES]));
 
   const teamToday = activePeople.map((person) => {
@@ -146,6 +158,30 @@ export default async function DashboardPage() {
         title={`Hello, ${session.profile.full_name.split(" ")[0]}`}
         description={`${humanDate(todayISO)} · ${session.profile.timezone}`}
       />
+
+      {/* ---- New joiner: onboarding -------------------------------------- */}
+      {isNewJoiner && onboarding ? (
+        <Callout tone="accent" title="New here? Start with the onboarding guide." className="mb-6">
+          <span className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              Accounts, access and what your first week looks like. It stays in{" "}
+              <Link href="/assets" className="underline underline-offset-2">
+                Team assets
+              </Link>{" "}
+              once you&rsquo;ve settled in.
+            </span>
+            <a
+              href={onboarding.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-mint px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-mint-deep"
+            >
+              Open the guide
+              <ExternalLink className="size-3.5" />
+            </a>
+          </span>
+        </Callout>
+      ) : null}
 
       {/* ---- Your day ---------------------------------------------------- */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

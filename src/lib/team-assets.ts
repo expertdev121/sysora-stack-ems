@@ -20,6 +20,15 @@ export interface TeamAsset {
 
 export const TEAM_ASSETS: TeamAsset[] = [
   {
+    id: "onboarding-sop",
+    name: "Onboarding SOP",
+    description:
+      "Step by step for bringing a new team member on — accounts, access, and their first week.",
+    href: "https://possible-waxflower-2ae.notion.site/SOP-Sysora-Stack-Team-Member-Onboarding-3c53ff5ad2058184a4a2dec2d950f596",
+    // Everyone: the person being onboarded needs this at least as much as the
+    // person doing the onboarding.
+  },
+  {
     id: "jira",
     name: "Jira board",
     description:
@@ -57,6 +66,13 @@ export const TEAM_ASSETS: TeamAsset[] = [
 
 export function assetsForRole(role: AppRole): TeamAsset[] {
   return TEAM_ASSETS.filter((asset) => !asset.roles || asset.roles.includes(role));
+}
+
+/** The onboarding runbook, surfaced on the dashboard for new joiners. */
+export const ONBOARDING_ASSET_ID = "onboarding-sop";
+
+export function onboardingAsset(): TeamAsset | undefined {
+  return TEAM_ASSETS.find((asset) => asset.id === ONBOARDING_ASSET_ID);
 }
 
 /**

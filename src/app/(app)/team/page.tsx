@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { AddPersonForm } from "@/components/add-person-form";
 import {
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Callout } from "@/components/ui/callout";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { assetsForRole } from "@/lib/team-assets";
 import { humanDate, localDateISO } from "@/lib/dates";
 import type { Compensation, Profile } from "@/lib/types";
 
@@ -22,6 +24,11 @@ export default async function TeamPage() {
   const owner = session.profile.role === "owner";
 
   const todayISO = localDateISO(session.profile.timezone);
+
+  // Same entry as on Team assets, so the URL lives in exactly one place.
+  const onboardingSop = assetsForRole(session.profile.role).find(
+    (asset) => asset.id === "onboarding-sop",
+  );
 
   // compensation is Owner-only at the database. A Manager reaching this page
   // gets an empty array from RLS, not an error — so there is nothing to hide
@@ -58,6 +65,26 @@ export default async function TeamPage() {
         title="Team"
         description={`${people.filter((p) => p.is_active).length} active · ${session.org.name}`}
       />
+
+      {onboardingSop ? (
+        <Callout tone="accent" className="mb-6">
+          <span className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              <strong>Bringing someone on?</strong> Follow the onboarding SOP so nothing gets
+              missed — accounts, access, and their first week.
+            </span>
+            <a
+              href={onboardingSop.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 font-medium underline underline-offset-2"
+            >
+              Open the SOP
+              <ExternalLink className="size-3.5" />
+            </a>
+          </span>
+        </Callout>
+      ) : null}
 
       {owner ? (
         <Card className="mb-6">
