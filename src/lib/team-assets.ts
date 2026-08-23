@@ -33,6 +33,13 @@ export const TEAM_ASSETS: TeamAsset[] = [
       "Automation workflows, including the EOD form and the webhook that feeds reports back into this app.",
     href: "https://n8n-production-db72.up.railway.app/home/workflows",
   },
+  {
+    id: "ghl",
+    name: "Sysora GHL account",
+    description:
+      "GoHighLevel sub-account dashboard — CRM, pipelines, funnels and client automations.",
+    href: "https://app.givesuite.com/v2/location/5VD5QnpROyZi3omw1BP1/dashboard",
+  },
 ];
 
 export function assetsForRole(role: AppRole): TeamAsset[] {
