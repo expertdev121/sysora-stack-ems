@@ -116,13 +116,14 @@ export function AppSidebar({
 
   return (
     <>
-      {/* Desktop rail */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-line-soft bg-surface-alt md:flex">
+      {/* Desktop rail. sticky + h-dvh so it stays put while the page scrolls;
+          the nav scrolls inside itself if it ever outgrows the viewport. */}
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-line-soft bg-surface-alt md:flex">
         <div className="px-5 py-5">
           <Wordmark />
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 px-3">
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <p className="eyebrow px-3 pt-2 pb-2">Workspace</p>
           {NAV.map(({ href, label, icon }) => (
             <NavLink key={href} href={href} label={label} icon={icon} active={isActive(href)} />

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
@@ -70,26 +70,41 @@ export default async function TeamAssetsPage() {
         </Callout>
       ) : null}
 
-      {/* ---- Tools ------------------------------------------------------- */}
+      {/* ---- Tools -------------------------------------------------------
+          The whole card is the link. Six mint buttons in one grid is six
+          competing primary actions and breaks the one-accent-per-view rule —
+          a single icon chip that fills on hover reads far quieter and makes
+          the entire card a bigger, easier target. */}
       {assets.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {assets.map((asset) => (
-            <Card key={asset.id} className="transition-colors hover:border-mint-line">
-              <CardContent className="flex h-full flex-col pt-5">
-                <h2 className="text-[15px] font-semibold text-navy">{asset.name}</h2>
-                <p className="mt-1 flex-1 text-[13px] text-ink-muted">{asset.description}</p>
-                <a
-                  href={asset.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex w-fit items-center gap-2 rounded-lg bg-mint px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-mint-deep"
+            <a
+              key={asset.id}
+              href={asset.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card-interactive group flex flex-col rounded-card border border-line bg-surface p-5 shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="font-display text-[15px] font-extrabold tracking-[-0.3px] text-navy">
+                  {asset.name}
+                </h2>
+                <span
+                  aria-hidden
+                  className="grid size-8 shrink-0 place-items-center rounded-lg bg-mint-50 text-mint-deep transition-colors duration-200 group-hover:bg-mint group-hover:text-white"
                 >
-                  Open
-                  <ExternalLink className="size-3.5" />
-                </a>
-                <p className="mt-2 truncate text-xs text-ink-faint">{assetHost(asset.href)}</p>
-              </CardContent>
-            </Card>
+                  <ArrowUpRight className="size-4" />
+                </span>
+              </div>
+
+              <p className="mt-2 line-clamp-2 flex-1 text-[13px] leading-relaxed text-ink-muted">
+                {asset.description}
+              </p>
+
+              <p className="mt-4 truncate border-t border-line-soft pt-3 text-xs text-ink-faint">
+                {assetHost(asset.href)}
+              </p>
+            </a>
           ))}
         </div>
       ) : null}
