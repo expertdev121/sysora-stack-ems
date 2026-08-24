@@ -4,28 +4,35 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /**
- * Mint is the only saturated colour in the system, so it is reserved for the
- * single primary action in a view. Everything else is neutral or navy —
- * including destructive actions, which get a quiet navy outline rather than
- * red, so no view ever carries two saturated hues.
+ * Buttons follow sysorastack.com: 12px radius, 700 weight, slightly tight
+ * tracking, and a mint glow under the primary CTA rather than a grey drop
+ * shadow. Hover darkens to mint-600 and lifts 1px, matching the site's
+ * --accent-hover and --lift-1.
+ *
+ * `danger` exists because the brand book defines proper status colours. It is
+ * for destructive actions only — never decoration — which keeps the
+ * one-saturated-colour-per-view rule intact.
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-bold tracking-[-0.1px] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 active:translate-y-0",
   {
     variants: {
       variant: {
-        primary: "bg-mint text-white hover:bg-mint-deep shadow-sm",
+        primary:
+          "bg-mint text-white shadow-glow hover:bg-mint-hover hover:-translate-y-px hover:shadow-glow-strong",
         secondary:
-          "bg-surface text-navy border border-line hover:border-line-strong hover:bg-canvas",
-        ghost: "text-ink-muted hover:bg-navy-soft hover:text-navy",
+          "border border-line bg-surface text-navy shadow-xs hover:border-line-strong hover:bg-mint-50 hover:-translate-y-px hover:shadow-card",
+        ghost: "text-ink-muted hover:bg-mint-50 hover:text-mint-deep",
         quiet:
-          "bg-surface text-ink-muted border border-line hover:text-navy hover:border-navy-line",
+          "border border-line-neutral bg-surface text-ink-muted hover:border-line-strong hover:bg-mint-50 hover:text-mint-deep",
+        danger:
+          "border border-danger-line bg-danger-wash text-danger hover:bg-danger-soft hover:border-danger",
         link: "text-mint-deep underline-offset-4 hover:underline",
       },
       size: {
-        sm: "h-8 px-3 text-[13px]",
-        md: "h-10 px-4",
-        lg: "h-11 px-6",
+        sm: "h-9 px-3 text-[13px]",
+        md: "h-10.5 px-5 text-[15px]",
+        lg: "h-13 px-8 text-base",
         icon: "h-9 w-9",
       },
     },

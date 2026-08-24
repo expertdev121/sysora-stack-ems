@@ -1,6 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Geist, Lato } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
+
+// The pairing sysorastack.com uses: Lato for headings, Geist for everything
+// else. Loaded through next/font so they self-host and don't shift on load.
+const geist = Geist({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-geist",
+  display: "swap",
+});
+
+const lato = Lato({
+  subsets: ["latin"],
+  weight: ["700", "900"],
+  variable: "--font-lato",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${geist.variable} ${lato.variable}`}>
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster

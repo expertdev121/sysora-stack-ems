@@ -3,80 +3,167 @@
 /* =============================================================================
    Sysora Stack — design tokens
 
-   Rules this palette obeys:
-     · Primary Mint #00C896 for CTAs and accents
-     · Mint Deep  #059669 for hover states and links
-     · Deep Navy  #1A1A2E for headings and the wordmark
-     · Exactly ONE saturated hue (mint) in any given view
-     · No pure black anywhere — the darkest ink is navy
-     · No generic SaaS blue
+   Ported from two authoritative sources rather than invented:
+     · Notion "Brand Colors & Palette" (Company OS → Sysora HQ)
+     · The live CSS custom properties on sysorastack.com
 
-   Attendance statuses are the hard case: three states normally reach for
-   green/red/amber, which would break the one-saturated-hue rule. Instead the
-   states are distinguished by FILL rather than hue — solid mint, half-filled
-   mint, solid cool grey, navy tint — so the grid stays readable while only
-   mint is saturated.
+   Where the two disagree, the website wins, because it is the thing people
+   actually see. The one case that matters: the brand doc gives #059669 as the
+   mint hover, the site uses #00A87E and reserves #059669 for link/accent text.
+   Both are kept, under the names the site gives them.
+
+   House rules carried over from the brand doc:
+     · Mint is the SINGLE accent in a view. One mint CTA on neutral surfaces.
+     · Never two saturated colours in one view. Status colours are semantic —
+       a destructive button, a validation error — never decoration.
+     · Never pure black. #1A1A2E is the dark ink, #0A1F14 the deepest surface.
+     · Never #1A1A2E and #0F172A together; they read as a mistake up close.
+       This app uses #1A1A2E throughout.
    ============================================================================= */
 
 @theme {
-  /* Brand */
-  --color-mint: #00c896;
-  --color-mint-deep: #059669;
-  --color-mint-soft: #e6faf3;
-  --color-mint-line: #a8ecd6;
+  /* --- Mint scale ---------------------------------------------------------- */
+  --color-mint-50: #f0faf6;
+  --color-mint-100: #e6f9f1;
+  --color-mint-200: #d4edd9;
+  --color-mint-300: #b7dfc0;
+  --color-mint-400: #87c38f;
+  --color-mint: #00c896; /* mint-500 — THE Sysora colour */
+  --color-mint-hover: #00a87e; /* mint-600 — CTA hover */
+  --color-mint-deep: #059669; /* mint-700 — links, accent text */
+  --color-mint-800: #047857;
+  --color-mint-900: #065f46;
 
-  --color-navy: #1a1a2e;
-  --color-navy-muted: #3d3d57;
-  --color-navy-soft: #ebebf1;
-  --color-navy-line: #d5d5e0;
+  /* Kept as an alias so existing bg-mint-soft usages stay correct. */
+  --color-mint-soft: #f0faf6;
+  --color-mint-line: #d4edd9;
 
-  /* Neutral surfaces — warm-neutral, never blue-grey, never pure black */
-  --color-canvas: #f7f8f8;
-  --color-surface: #ffffff;
-  --color-line: #e6e8e8;
-  --color-line-strong: #d3d6d6;
-  --color-ink: #1a1a2e;
-  --color-ink-muted: #64707a;
-  --color-ink-faint: #98a2aa;
+  /* --- Forest (deepest surfaces) ------------------------------------------- */
+  --color-forest: #0a1f14;
+  --color-forest-cta: #0d2818;
 
-  /* Attendance fills */
-  --color-status-absent: #c9ccd4;
-  --color-status-absent-ink: #4a4f5c;
+  /* --- Ink scale ----------------------------------------------------------- */
+  --color-navy: #1a1a2e; /* ink-800 — headings, wordmark */
+  --color-navy-muted: #2d3748; /* ink-700 — strong body */
+  --color-ink: #2d3748; /* default body copy */
+  --color-ink-soft: #475569;
+  --color-ink-muted: #718096; /* labels, secondary metadata */
+  --color-ink-faint: #a0aec0; /* placeholders, empty states */
 
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, "Noto Sans", sans-serif;
+  /* --- Surfaces ------------------------------------------------------------ */
+  --color-surface: #ffffff; /* cards, modals */
+  --color-surface-alt: #fafcfb; /* sidebar, secondary panels */
+  --color-canvas: #f7f9f7; /* app background */
+  --color-canvas-sunk: #f4f8f5;
+  --color-slate-wash: #f1f5f9; /* inputs, neutral chips */
 
-  --radius-card: 0.75rem;
+  /* --- Borders ------------------------------------------------------------- */
+  --color-line: #d4edd9; /* default: cards, inputs — mint-tinted */
+  --color-line-soft: #edf2ee; /* faint dividers */
+  --color-line-strong: #b7dfc0; /* hover / focus on mint borders */
+  --color-line-neutral: #e2e8f0; /* neutral panels */
+  --color-navy-line: #e2e8f0;
+  --color-navy-soft: #f1f5f9;
+
+  /* --- Status. Semantic only — never decorative. --------------------------- */
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+  --color-danger-wash: #fef2f2;
+  --color-danger-line: #fecaca;
+  --color-danger-ink: #991b1b;
+
+  --color-warn: #f59e0b;
+  --color-warn-soft: #fef3c7;
+  --color-warn-line: #fde68a;
+  --color-warn-ink: #92400e;
+
+  --color-info: #6366f1;
+  --color-info-soft: #dbeafe;
+  --color-info-ink: #1e3a5f;
+
+  /* --- Attendance fills ---------------------------------------------------- */
+  --color-status-absent: #cbd5e1;
+  --color-status-absent-ink: #475569;
+
+  /* --- Type ---------------------------------------------------------------- */
+  --font-sans: var(--font-geist), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-lato), var(--font-geist), system-ui, sans-serif;
+
+  /* --- Radii --------------------------------------------------------------- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-card: 14px;
+  --radius-xl: 16px;
+
+  /* --- Shadows. Tinted green (#005032), not neutral grey — a detail the site
+         gets right and flat UI kits usually miss. --------------------------- */
+  --shadow-xs: 0 1px 4px #0000000a;
+  --shadow-card: 0 2px 12px #0050320f;
+  --shadow-raised: 0 8px 32px #00503214;
+  --shadow-lift: 0 16px 48px #0050321f;
+  --shadow-glow: 0 8px 24px #00c89647;
+  --shadow-glow-strong: 0 12px 32px #00c89659;
+
+  /* --- Motion -------------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
 
 html,
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   font-family: var(--font-sans);
+  line-height: 1.6;
 }
 
 h1,
 h2,
 h3,
 h4 {
+  font-family: var(--font-display);
   color: var(--color-navy);
-  letter-spacing: -0.015em;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+h1 {
+  letter-spacing: -0.8px;
 }
 
 a {
   color: var(--color-mint-deep);
 }
 
+/* The site's focus treatment: a soft mint halo rather than a hard outline. */
 *:focus-visible {
   outline: 2px solid var(--color-mint);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+/* Uppercase micro-label, straight from the site's --eyebrow-* tokens. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Half Day reads as a literally half-filled cell — instant to parse in a grid
@@ -86,22 +173,41 @@ a {
     100deg,
     var(--color-mint) 0%,
     var(--color-mint) 50%,
-    var(--color-mint-soft) 50%,
-    var(--color-mint-soft) 100%
+    var(--color-mint-50) 50%,
+    var(--color-mint-50) 100%
   );
 }
 
-/* Approved leave: navy tint with a soft diagonal so it never reads as "absent". */
+/* Approved leave: soft diagonal so it never reads as "absent". */
 .status-fill-leave {
   background-image: repeating-linear-gradient(
     -45deg,
-    var(--color-navy-soft) 0px,
-    var(--color-navy-soft) 4px,
-    #f4f4f8 4px,
-    #f4f4f8 8px
+    var(--color-slate-wash) 0px,
+    var(--color-slate-wash) 4px,
+    #f8fafc 4px,
+    #f8fafc 8px
   );
 }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
+/* Cards that respond to the pointer. Lift + shadow, matching --lift-2 and
+   --shadow-hover on the marketing site so the app feels like the same product. */
+.card-interactive {
+  transition:
+    transform 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--color-line-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive,
+  .card-interactive:hover {
+    transform: none;
+    transition: none;
+  }
 }

@@ -1,8 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, ExternalLink } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarCheck2,
+  CalendarClock,
+  ExternalLink,
+  NotebookPen,
+  Plane,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  StatCard,
+} from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status";
 import { Callout, EmptyState } from "@/components/ui/callout";
 import { TimezoneForm } from "@/components/person-admin";
@@ -184,65 +198,66 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* ---- Your day ---------------------------------------------------- */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-ink-muted">Today&rsquo;s attendance</p>
-            <div className="mt-2">
-              <StatusChip state={myStatus ?? "unmarked"} />
-            </div>
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Attendance"
+          icon={<CalendarCheck2 />}
+          footer={
             <Link
               href="/attendance"
-              className="mt-3 inline-flex items-center gap-1 text-[13px] text-mint-deep hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-mint-deep hover:underline"
             >
               {myStatus ? "Change it" : "Mark your day"}
               <ArrowRight className="size-3.5" />
             </Link>
-          </CardContent>
-        </Card>
+          }
+        >
+          <StatusChip state={myStatus ?? "unmarked"} />
+        </StatCard>
 
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-ink-muted">EOD report</p>
-            <div className="mt-2">
-              <StatusChip
-                state={myEodToday ? "present" : "unmarked"}
-                label={myEodToday ? "Submitted" : "Not submitted"}
-              />
-            </div>
+        <StatCard
+          label="EOD report"
+          icon={<NotebookPen />}
+          footer={
             <Link
               href="/eod"
-              className="mt-3 inline-flex items-center gap-1 text-[13px] text-mint-deep hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-mint-deep hover:underline"
             >
               {myEodToday ? "View history" : "Fill it in"}
               <ArrowRight className="size-3.5" />
             </Link>
-          </CardContent>
-        </Card>
+          }
+        >
+          <StatusChip
+            state={myEodToday ? "present" : "unmarked"}
+            label={myEodToday ? "Filed" : "Not filed"}
+          />
+        </StatCard>
 
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-ink-muted">Paid leave left</p>
-            <p className="mt-1 text-3xl font-semibold text-navy tabular">{remainingPaid}</p>
-            <p className="mt-2 text-xs text-ink-muted">
+        <StatCard
+          label="Paid leave left"
+          icon={<Plane />}
+          footer={
+            <>
               of {session.org.annual_paid_leave} this year
               {myPending > 0 ? ` · ${myPending} awaiting a decision` : ""}
-            </p>
-          </CardContent>
-        </Card>
+            </>
+          }
+        >
+          <p className="font-display text-[34px] leading-none font-extrabold tracking-[-1px] text-navy tabular">
+            {remainingPaid}
+          </p>
+        </StatCard>
 
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-ink-muted">Salary date</p>
-            <p className="mt-1 flex items-baseline gap-1.5 text-3xl font-semibold text-navy">
-              {ordinal(session.org.salary_day)}
-            </p>
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-muted">
-              <CalendarClock className="size-3.5" />
-              Next: {humanDate(salaryDate)}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          label="Salary date"
+          icon={<CalendarClock />}
+          footer={<>Next: {humanDate(salaryDate)}</>}
+        >
+          <p className="font-display text-[34px] leading-none font-extrabold tracking-[-1px] text-navy">
+            {ordinal(session.org.salary_day)}
+          </p>
+        </StatCard>
       </div>
 
       {/* ---- Staff view -------------------------------------------------- */}
@@ -257,14 +272,28 @@ export default async function DashboardPage() {
               {teamToday.length === 0 ? (
                 <EmptyState title="No active people yet." />
               ) : (
-                <ul className="divide-y divide-line">
+                <ul className="divide-y divide-line-soft">
                   {teamToday.map(({ person, state, eod }) => (
-                    <li key={person.id} className="flex items-center justify-between gap-3 py-2.5">
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] text-navy">{person.full_name}</p>
-                        <p className="text-xs text-ink-muted">
-                          {person.timezone} · EOD {eod ? "in" : "pending"}
-                        </p>
+                    <li
+                      key={person.id}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-mint-50/60"
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-wash text-[11px] font-bold text-ink-muted">
+                          {person.full_name
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((p) => p[0]?.toUpperCase() ?? "")
+                            .join("")}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13px] font-medium text-navy">
+                            {person.full_name}
+                          </span>
+                          <span className="block text-xs text-ink-muted">
+                            {person.timezone} · EOD {eod ? "in" : "pending"}
+                          </span>
+                        </span>
                       </div>
                       <StatusChip state={state} />
                     </li>
