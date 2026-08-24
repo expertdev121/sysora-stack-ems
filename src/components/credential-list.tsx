@@ -55,9 +55,11 @@ export function CredentialRow({
   people: PersonOption[];
   grants?: Record<string, GrantMode>;
 }) {
-  const [revealed, setRevealed] = useState<{ username: string | null; secret: string } | null>(
-    null,
-  );
+  const [revealed, setRevealed] = useState<{
+    username: string | null;
+    secret: string;
+    extra: { label: string; value: string } | null;
+  } | null>(null);
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,7 +86,7 @@ export function CredentialRow({
         return;
       }
 
-      setRevealed({ username: result.username, secret: result.secret });
+      setRevealed({ username: result.username, secret: result.secret, extra: result.extra });
       timer.current = setTimeout(() => setRevealed(null), AUTO_HIDE_MS);
     });
   }
@@ -186,6 +188,18 @@ export function CredentialRow({
             </code>
             <CopyButton value={revealed.secret} label="password" />
           </div>
+
+          {revealed.extra ? (
+            <div className="flex items-center gap-2">
+              <span className="w-28 shrink-0 text-xs text-ink-muted">
+                {revealed.extra.label}
+              </span>
+              <code className="flex-1 truncate rounded border border-line bg-surface px-2 py-1.5 font-mono text-[12px] break-all text-navy">
+                {revealed.extra.value}
+              </code>
+              <CopyButton value={revealed.extra.value} label={revealed.extra.label} />
+            </div>
+          ) : null}
 
           <p className="text-xs text-ink-faint">
             Hides automatically in {AUTO_HIDE_MS / 1000}s. This view is recorded against your name.

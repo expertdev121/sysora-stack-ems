@@ -2,7 +2,7 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, serviceRoleConfigured } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, isStaff } from "@/lib/auth";
 import { isValidTimeZone } from "@/lib/dates";
@@ -38,6 +38,14 @@ async function ownerOnly() {
 export async function createPerson(_prev: PeopleState, formData: FormData): Promise<PeopleState> {
   const session = await ownerOnly();
   if (!session) return { ok: false, error: "Only the Owner can add people." };
+
+  if (!serviceRoleConfigured()) {
+    return {
+      ok: false,
+      error:
+        "SUPABASE_SERVICE_ROLE_KEY isn't set, so accounts can't be created. Supabase → Project Settings → API → service_role, then add it to .env.local and restart.",
+    };
+  }
 
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -101,6 +109,14 @@ export async function createPerson(_prev: PeopleState, formData: FormData): Prom
 export async function resetPassword(_prev: PeopleState, formData: FormData): Promise<PeopleState> {
   const session = await ownerOnly();
   if (!session) return { ok: false, error: "Only the Owner can reset a password." };
+
+  if (!serviceRoleConfigured()) {
+    return {
+      ok: false,
+      error:
+        "SUPABASE_SERVICE_ROLE_KEY isn't set, so passwords can't be reset. Supabase → Project Settings → API → service_role.",
+    };
+  }
 
   const profileId = String(formData.get("profile_id") ?? "");
   if (!profileId) return { ok: false, error: "Missing person." };

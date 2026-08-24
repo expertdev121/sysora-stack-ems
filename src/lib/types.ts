@@ -152,6 +152,8 @@ export interface CredentialSummary {
   notes: string | null;
   visible_to_roles: AppRole[];
   rotated_at: string | null;
+  /** Name of the second secret, if any. The value itself is never sent here. */
+  extra_label?: string | null;
 }
 
 /** Result shape returned by every server action in src/app/actions. */

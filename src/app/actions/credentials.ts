@@ -9,7 +9,13 @@ import type { ActionResult, AppRole, GrantMode } from "@/lib/types";
 const ROLES: AppRole[] = ["owner", "manager", "employee"];
 
 export type RevealResult =
-  | { ok: true; username: string | null; secret: string }
+  | {
+      ok: true;
+      username: string | null;
+      secret: string;
+      /** Second secret — security answer, backup code, app password. */
+      extra: { label: string; value: string } | null;
+    }
   | { ok: false; error: string };
 
 /**
@@ -35,13 +41,15 @@ export async function revealCredential(formData: FormData): Promise<RevealResult
 
   const { data: credential, error } = await supabase
     .from("credentials")
-    .select("id, org_id, username, secret_ciphertext")
+    .select("id, org_id, username, secret_ciphertext, extra_ciphertext, extra_label")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       org_id: string;
       username: string | null;
       secret_ciphertext: string;
+      extra_ciphertext: string | null;
+      extra_label: string | null;
     }>();
 
   // RLS is the authority here, not a check in this function. The select above
@@ -55,8 +63,15 @@ export async function revealCredential(formData: FormData): Promise<RevealResult
   }
 
   let secret: string;
+  let extra: { label: string; value: string } | null = null;
   try {
     secret = decryptSecret(credential.secret_ciphertext);
+    if (credential.extra_ciphertext) {
+      extra = {
+        label: credential.extra_label ?? "Also stored",
+        value: decryptSecret(credential.extra_ciphertext),
+      };
+    }
   } catch {
     return {
       ok: false,
@@ -76,7 +91,7 @@ export async function revealCredential(formData: FormData): Promise<RevealResult
     console.error("credential reveal audit failed", auditError.message);
   }
 
-  return { ok: true, username: credential.username, secret };
+  return { ok: true, username: credential.username, secret, extra };
 }
 
 /** Create or rotate. Owner only — enforced here and again by RLS. */
@@ -97,6 +112,8 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
   const secret = String(formData.get("secret") ?? "");
   const url = String(formData.get("url") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  const extraLabel = String(formData.get("extra_label") ?? "").trim() || null;
+  const extraSecret = String(formData.get("extra_secret") ?? "");
 
   const visibleTo = formData
     .getAll("visible_to_roles")
@@ -117,9 +134,14 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
       username,
       url,
       notes,
+      extra_label: extraLabel,
       visible_to_roles: visibleTo.length > 0 ? visibleTo : ["owner"],
     };
     if (secret) update.secret_ciphertext = encryptSecret(secret);
+    // Blank keeps the stored value; clearing the label clears the secret too,
+    // so a second secret cannot be left orphaned with no name.
+    if (extraSecret) update.extra_ciphertext = encryptSecret(extraSecret);
+    else if (!extraLabel) update.extra_ciphertext = null;
 
     const { error } = await supabase.from("credentials").update(update).eq("id", id);
     if (error) return { ok: false, error: humanise(error.message) };
@@ -144,6 +166,8 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
       secret_ciphertext: encryptSecret(secret),
       url,
       notes,
+      extra_label: extraLabel,
+      extra_ciphertext: extraSecret ? encryptSecret(extraSecret) : null,
       visible_to_roles: visibleTo.length > 0 ? visibleTo : ["owner"],
     })
     .select("id")

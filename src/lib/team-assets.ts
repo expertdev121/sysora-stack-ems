@@ -93,6 +93,7 @@ const TOOL_NAMES: Record<string, string> = {
   ghl: "GoHighLevel",
   gmail: "Gmail",
   gohighlevel: "GoHighLevel",
+  greengeeks: "GreenGeeks",
   groupkit: "GroupKit",
   microsoft: "Microsoft",
   miro: "Miro",

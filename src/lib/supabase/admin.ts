@@ -11,14 +11,27 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *
  * Everything else uses the anon-key client so RLS stays in the loop.
  */
+/**
+ * Whether admin operations are possible at all.
+ *
+ * Call this before createAdminClient() so the UI can explain itself. Without
+ * it, a missing key surfaces as an unhandled throw and the user just sees a
+ * form that silently does nothing.
+ */
+export function serviceRoleConfigured(): boolean {
+  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+}
+
 export function createAdminClient() {
   if (typeof window !== "undefined") {
     throw new Error("createAdminClient() must never be called in the browser");
   }
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!serviceKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is not set. Supabase → Project Settings → API → service_role.",
+    );
   }
 
   return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {

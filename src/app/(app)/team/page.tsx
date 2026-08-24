@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Callout } from "@/components/ui/callout";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { serviceRoleConfigured } from "@/lib/supabase/admin";
 import { assetsForRole } from "@/lib/team-assets";
 import { humanDate, localDateISO } from "@/lib/dates";
 import type { Compensation, Profile } from "@/lib/types";
@@ -65,6 +66,17 @@ export default async function TeamPage() {
         title="Team"
         description={`${people.filter((p) => p.is_active).length} active · ${session.org.name}`}
       />
+
+      {owner && !serviceRoleConfigured() ? (
+        <Callout tone="warn" title="Adding people is switched off." className="mb-6">
+          Creating an account writes an <code>auth.users</code> row, which needs admin rights.
+          Set <code className="rounded bg-surface px-1 py-0.5 text-[12px]">
+            SUPABASE_SERVICE_ROLE_KEY
+          </code>{" "}
+          from Supabase → Project Settings → API → <code>service_role</code>, then restart the
+          server. Reset Password needs it too. Everything else on this page works without it.
+        </Callout>
+      ) : null}
 
       {onboardingSop ? (
         <Callout tone="accent" className="mb-6">

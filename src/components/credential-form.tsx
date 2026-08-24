@@ -120,6 +120,34 @@ function CredentialFields({
         />
       </FieldRow>
 
+      <FieldRow
+        label="Second secret — label"
+        htmlFor={`${idPrefix}-extra-label`}
+        hint="Optional, e.g. “Security answer”, “Backup code”."
+      >
+        <Input
+          id={`${idPrefix}-extra-label`}
+          name="extra_label"
+          defaultValue={credential?.extra_label ?? ""}
+          placeholder="Security answer"
+        />
+      </FieldRow>
+
+      <FieldRow
+        label="Second secret — value"
+        htmlFor={`${idPrefix}-extra`}
+        hint={
+          isEdit ? "Leave blank to keep the current one." : "Encrypted, same as the password."
+        }
+      >
+        <Input
+          id={`${idPrefix}-extra`}
+          name="extra_secret"
+          type="password"
+          autoComplete="off"
+        />
+      </FieldRow>
+
       <FieldRow label="Sign-in URL" htmlFor={`${idPrefix}-url`} className="sm:col-span-2">
         <Input
           id={`${idPrefix}-url`}
