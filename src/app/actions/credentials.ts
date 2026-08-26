@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/auth";
 import { decryptSecret, encryptSecret, encryptionConfigured } from "@/lib/crypto";
+import { slugify } from "@/lib/utils";
 import type { ActionResult, AppRole, GrantMode } from "@/lib/types";
 
 const ROLES: AppRole[] = ["owner", "manager", "employee"];
@@ -105,8 +106,12 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
   }
 
   const id = String(formData.get("id") ?? "").trim();
-  const assetId = String(formData.get("asset_id") ?? "").trim();
-  const clientKey = String(formData.get("client_key") ?? "").trim() || null;
+
+  // Client and tool are free text. Slugify so "Green Geeks", "green geeks" and
+  // "Green  Geeks" all land in one group rather than three, and so a tool
+  // nobody predicted needs no code change to store.
+  const assetId = slugify(String(formData.get("asset_id") ?? ""));
+  const clientKey = slugify(String(formData.get("client_key") ?? "")) || null;
   const label = String(formData.get("label") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim() || null;
   const secret = String(formData.get("secret") ?? "");
@@ -120,7 +125,9 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
     .map(String)
     .filter((role): role is AppRole => ROLES.includes(role as AppRole));
 
-  if (!assetId) return { ok: false, error: "Pick which tool this is for." };
+  if (!assetId) {
+    return { ok: false, error: "Name the tool this login is for — anything you like." };
+  }
   if (!label) return { ok: false, error: "Give it a label, e.g. “Admin login”." };
 
   const supabase = await createClient();

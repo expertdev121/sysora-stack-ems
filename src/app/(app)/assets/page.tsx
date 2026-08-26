@@ -9,7 +9,7 @@ import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { encryptionConfigured } from "@/lib/crypto";
 import { assetHost, assetsForRole, toolOptions } from "@/lib/team-assets";
-import { CLIENTS } from "@/lib/clients";
+import { clientOptions as clientOptions_ } from "@/lib/clients";
 import type { CredentialGrant, CredentialSummary, GrantMode, Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Team assets" };
@@ -54,7 +54,7 @@ export default async function TeamAssetsPage() {
   }
 
   const assetOptions = toolOptions(credentials.map((c) => c.asset_id));
-  const clientOptions = CLIENTS.map((c) => ({ id: c.key, name: c.name }));
+  const clientOptions = clientOptions_(credentials.map((c) => c.client_key));
 
   return (
     <>
@@ -120,6 +120,12 @@ export default async function TeamAssetsPage() {
           Encrypted at rest. Every reveal is recorded against your name.
         </p>
 
+        {isOwner ? (
+          <div className="mt-4">
+            <CredentialForm assets={assetOptions} clients={clientOptions} people={people} />
+          </div>
+        ) : null}
+
         <CredentialBrowser
           credentials={credentials}
           canManage={isOwner}
@@ -131,14 +137,11 @@ export default async function TeamAssetsPage() {
       </section>
 
       {isOwner ? (
-        <div className="mt-8">
-          <CredentialForm assets={assetOptions} clients={clientOptions} people={people} />
-          <p className="mt-3 text-xs text-ink-muted">
-            Secrets are encrypted with AES-256-GCM before they reach the database, using a key
-            held in the environment rather than in Postgres. A shared login cannot be revoked for
-            one person — when someone leaves, rotate whatever the reveal log says they saw.
-          </p>
-        </div>
+        <p className="mt-8 text-xs text-ink-muted">
+          Secrets are encrypted with AES-256-GCM before they reach the database, using a key held
+          in the environment rather than in Postgres. A shared login cannot be revoked for one
+          person — when someone leaves, rotate whatever the reveal log says they saw.
+        </p>
       ) : null}
     </>
   );

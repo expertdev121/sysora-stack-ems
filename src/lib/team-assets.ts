@@ -1,3 +1,4 @@
+import { titleCase } from "@/lib/utils";
 import type { AppRole } from "@/lib/types";
 
 /**
@@ -109,17 +110,16 @@ const TOOL_NAMES: Record<string, string> = {
   zoom: "Zoom",
 };
 
-/** "my-profit-engine" -> "My profit engine", for anything not in TOOL_NAMES. */
-function humaniseAssetId(assetId: string): string {
-  const spaced = assetId.replace(/[-_]+/g, " ").trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
+/**
+ * TOOL_NAMES only exists to get brand casing right ("GoHighLevel", not
+ * "Gohighlevel"). Anything not listed is title-cased from its slug, so a tool
+ * nobody predicted still displays sensibly the moment it's typed in.
+ */
 export function toolLabel(assetId: string): string {
-  return TOOL_NAMES[assetId] ?? humaniseAssetId(assetId);
+  return TOOL_NAMES[assetId] ?? titleCase(assetId);
 }
 
-/** Every tool that can be picked in the credential form. */
+/** Suggestions for the tool field. Typing something new is always allowed. */
 export function toolOptions(existingAssetIds: string[]): { id: string; name: string }[] {
   const ids = new Set([
     ...TEAM_ASSETS.map((a) => a.id),

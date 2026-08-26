@@ -1,11 +1,12 @@
+import { titleCase } from "@/lib/utils";
+
 /**
- * The clients whose logins this team holds.
+ * Known clients — display names and hints only.
  *
- * Kept in code alongside src/lib/team-assets.ts for the same reason: this list
- * changes when you win or lose an account, not weekly, and a table would need
- * CRUD screens and RLS to earn its place. A credential's client_key is a plain
- * text column, so a client removed from this list surfaces as unassigned rather
- * than taking its credentials down with it.
+ * This list is NOT a whitelist. client_key is free text, and the form lets you
+ * type a client that isn't here; it will be slugified and grouped correctly,
+ * just without a hint line. Adding an entry below only pins a nicer display
+ * name ("MyProfitEngine" rather than "Mpe").
  */
 export interface Client {
   key: string;
@@ -23,9 +24,25 @@ export const CLIENTS: Client[] = [
   { key: "yann", name: "Yann", hint: "Upwork client" },
 ];
 
+/**
+ * CLIENTS only exists to pin display names and hints for the ones we know.
+ * A client typed in freely is title-cased from its slug, so winning a new
+ * account never requires a code change.
+ */
 export function clientName(key: string | null): string {
   if (!key) return "Unassigned";
-  return CLIENTS.find((c) => c.key === key)?.name ?? key;
+  return CLIENTS.find((c) => c.key === key)?.name ?? titleCase(key);
+}
+
+/** Suggestions for the client field. Typing something new is always allowed. */
+export function clientOptions(existingKeys: (string | null)[]): { id: string; name: string }[] {
+  const keys = new Set<string>([
+    ...CLIENTS.map((c) => c.key),
+    ...existingKeys.filter((k): k is string => Boolean(k)),
+  ]);
+  return [...keys]
+    .map((key) => ({ id: key, name: clientName(key) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function clientHint(key: string | null): string | undefined {
