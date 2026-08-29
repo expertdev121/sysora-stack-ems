@@ -72,6 +72,7 @@ export function Combobox({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
+  const [dropUp, setDropUp] = React.useState(false);
 
   const rootRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -123,7 +124,17 @@ export function Combobox({
   }, [open]);
 
   React.useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (!open) return;
+    inputRef.current?.focus();
+
+    // Inside a scrolling dialog, a panel opening downward from a field near
+    // the bottom is clipped by the container. Measure once on open and flip
+    // upward when there is more room there.
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (rect) {
+      const below = window.innerHeight - rect.bottom;
+      setDropUp(below < 280 && rect.top > below);
+    }
   }, [open]);
 
   // Keep the highlighted row in view when arrowing past the fold.
@@ -203,7 +214,12 @@ export function Combobox({
       </button>
 
       {open ? (
-        <div className="absolute z-50 mt-1.5 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
+        <div
+          className={cn(
+            "absolute z-50 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-lg",
+            dropUp ? "bottom-full mb-1.5" : "top-full mt-1.5",
+          )}
+        >
           <div className="relative border-b border-line-soft">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-faint" />
             <input

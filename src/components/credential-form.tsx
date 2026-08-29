@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ChevronRight, Plus } from "lucide-react";
 import { saveCredential } from "@/app/actions/credentials";
 import { Button } from "@/components/ui/button";
 import { FieldRow, Input, Label, Textarea } from "@/components/ui/field";
 import { Combobox } from "@/components/ui/combobox";
+import { Modal } from "@/components/ui/modal";
 import type { AppRole, CredentialSummary, GrantMode } from "@/lib/types";
 
 export interface FormOption {
@@ -247,6 +248,7 @@ export function CredentialForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
 
   function onSubmit(formData: FormData) {
     startTransition(async () => {
@@ -254,30 +256,40 @@ export function CredentialForm({
       if (result.ok) {
         toast.success(result.message ?? "Stored.");
         formRef.current?.reset();
+        setOpen(false);
       } else {
+        // Left open on failure: closing would take the half-typed password
+        // with it, and the error names something the person has to fix here.
         toast.error(result.error);
       }
     });
   }
 
   return (
-    <details className="group rounded-card border border-line bg-surface shadow-card">
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-[14px] font-semibold text-navy">
-        <span className="grid size-6 place-items-center rounded-md bg-mint-50 text-mint-deep transition-transform group-open:rotate-45">
+    <Modal
+      open={open}
+      onOpenChange={setOpen}
+      title="Add a credential"
+      description="Encrypted before it reaches the database. It gets its own reference once saved."
+      trigger={
+        <Button type="button" size="sm">
           <Plus className="size-4" />
-        </span>
-        Add a credential
-      </summary>
-
-      <form ref={formRef} action={onSubmit} className="flex flex-col gap-3 px-5 pb-5">
+          Add login
+        </Button>
+      }
+    >
+      <form ref={formRef} action={onSubmit} className="flex flex-col gap-3">
         <CredentialFields assets={assets} clients={clients} people={people} idPrefix="new" />
-        <div>
+        <div className="flex gap-2 border-t border-line-soft pt-3">
           <Button type="submit" disabled={pending}>
             {pending ? "Saving…" : "Save credential"}
           </Button>
+          <Button type="button" variant="quiet" disabled={pending} onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
         </div>
       </form>
-    </details>
+    </Modal>
   );
 }
 

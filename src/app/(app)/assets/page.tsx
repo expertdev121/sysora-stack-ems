@@ -115,17 +115,15 @@ export default async function TeamAssetsPage() {
 
       {/* ---- Credentials: one table, filtered and searched ---------------- */}
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-navy">Logins</h2>
-        <p className="mt-1 text-[13px] text-ink-muted">
-          Filter by client or tool, or search across every field. Encrypted at rest — every reveal
-          is recorded against your name. Quote the ID when you tell someone which login to use.
-        </p>
-
-        {isOwner ? (
-          <div className="mt-4">
+        {/* Heading and the one action it takes, on a line. The explanation that
+            used to sit here described controls that are directly below and
+            visibly self-describing. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-navy">Logins</h2>
+          {isOwner ? (
             <CredentialForm assets={assetOptions} clients={clientOptions} people={people} />
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         <CredentialBrowser
           credentials={credentials}
