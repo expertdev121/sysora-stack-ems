@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { CredentialBrowser } from "@/components/credential-browser";
 import { CredentialForm } from "@/components/credential-form";
+import { CatalogueManager, type CatalogueEntry } from "@/components/catalogue-manager";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { encryptionConfigured } from "@/lib/crypto";
@@ -22,7 +23,13 @@ export default async function TeamAssetsPage() {
 
   // secret_ciphertext is deliberately NOT selected. Nothing encrypted ever
   // reaches this page's HTML — decryption happens only in the reveal action.
-  const [{ data: credentialRows }, { data: peopleRows }, { data: grantRows }] = await Promise.all([
+  const [
+    { data: credentialRows },
+    { data: peopleRows },
+    { data: grantRows },
+    { data: toolRows },
+    { data: clientRows },
+  ] = await Promise.all([
     supabase
       .from("credentials")
       // extra_ciphertext is deliberately NOT selected — only its label, so the
@@ -40,6 +47,8 @@ export default async function TeamAssetsPage() {
       .eq("is_active", true)
       .order("full_name"),
     supabase.from("credential_grants").select("credential_id, profile_id, mode"),
+    supabase.from("credential_tools").select("slug, name").order("name"),
+    supabase.from("credential_clients").select("slug, name, hint").order("name"),
   ]);
 
   const credentials = (credentialRows ?? []) as CredentialSummary[];
@@ -53,8 +62,45 @@ export default async function TeamAssetsPage() {
     (grantsByCredential[grant.credential_id] ??= {})[grant.profile_id] = grant.mode;
   }
 
-  const assetOptions = toolOptions(credentials.map((c) => c.asset_id));
-  const clientOptions = clientOptions_(credentials.map((c) => c.client_key));
+  // The catalogues are the source of truth for names now. A credential naming
+  // a slug with no row still has to display, so anything in use but missing
+  // falls back to the old title-cased label rather than vanishing.
+  const toolRecords = (toolRows ?? []) as { slug: string; name: string }[];
+  const clientRecords = (clientRows ?? []) as { slug: string; name: string; hint: string | null }[];
+
+  const toolUsage = new Map<string, number>();
+  for (const c of credentials) toolUsage.set(c.asset_id, (toolUsage.get(c.asset_id) ?? 0) + 1);
+
+  const clientUsage = new Map<string, number>();
+  for (const c of credentials) {
+    if (c.client_key) clientUsage.set(c.client_key, (clientUsage.get(c.client_key) ?? 0) + 1);
+  }
+
+  const knownTools = new Set(toolRecords.map((t) => t.slug));
+  const knownClients = new Set(clientRecords.map((c) => c.slug));
+
+  const assetOptions = [
+    ...toolRecords.map((t) => ({ id: t.slug, name: t.name })),
+    ...toolOptions([...toolUsage.keys()].filter((slug) => !knownTools.has(slug))),
+  ].sort((a, b) => a.name.localeCompare(b.name));
+
+  const clientOptions = [
+    ...clientRecords.map((c) => ({ id: c.slug, name: c.name })),
+    ...clientOptions_([...clientUsage.keys()].filter((slug) => !knownClients.has(slug))),
+  ].sort((a, b) => a.name.localeCompare(b.name));
+
+  const toolCatalogue: CatalogueEntry[] = toolRecords.map((t) => ({
+    slug: t.slug,
+    name: t.name,
+    usage: toolUsage.get(t.slug) ?? 0,
+  }));
+
+  const clientCatalogue: CatalogueEntry[] = clientRecords.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    hint: c.hint,
+    usage: clientUsage.get(c.slug) ?? 0,
+  }));
 
   return (
     <>
@@ -121,7 +167,10 @@ export default async function TeamAssetsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-navy">Logins</h2>
           {isOwner ? (
-            <CredentialForm assets={assetOptions} clients={clientOptions} people={people} />
+            <div className="flex items-center gap-2">
+              <CatalogueManager tools={toolCatalogue} clients={clientCatalogue} />
+              <CredentialForm assets={assetOptions} clients={clientOptions} people={people} />
+            </div>
           ) : null}
         </div>
 

@@ -18,15 +18,20 @@ import type { CredentialSummary, GrantMode } from "@/lib/types";
  *
  * The secret is not matched, because it is not on this page in any form.
  */
-function matches(credential: CredentialSummary, query: string): boolean {
+function matches(
+  credential: CredentialSummary,
+  query: string,
+  toolName: (slug: string) => string,
+  clientLabel: (slug: string | null) => string,
+): boolean {
   const haystack = [
     credential.ref,
     credential.label,
     credential.username ?? "",
     credential.url ?? "",
     credential.notes ?? "",
-    toolLabel(credential.asset_id),
-    clientName(credential.client_key),
+    toolName(credential.asset_id),
+    clientLabel(credential.client_key),
     credential.client_key ?? "",
   ]
     .join(" ")
@@ -58,6 +63,18 @@ export function CredentialBrowser({
   const [client, setClient] = useState("");
   const [tool, setTool] = useState("");
 
+  // Names come from the editable catalogue; the old constants are the fallback
+  // for a slug in use that has no row yet.
+  const toolName = useMemo(() => {
+    const map = new Map(assets.map((a) => [a.id, a.name]));
+    return (slug: string) => map.get(slug) ?? toolLabel(slug);
+  }, [assets]);
+
+  const clientLabel = useMemo(() => {
+    const map = new Map(clients.map((c) => [c.id, c.name]));
+    return (slug: string | null) => (slug ? (map.get(slug) ?? clientName(slug)) : clientName(null));
+  }, [clients]);
+
   // Counts live on the filter options themselves, so picking one is an
   // informed choice rather than a guess that might land on an empty list.
   const clientOptions: ComboboxOption[] = useMemo(() => {
@@ -69,29 +86,29 @@ export function CredentialBrowser({
     return [...counts.entries()]
       .map(([key, n]) => ({
         value: key || "__none__",
-        label: key ? clientName(key) : "No client",
+        label: key ? clientLabel(key) : "No client",
         hint: `${n}${clientHint(key || null) ? ` · ${clientHint(key || null)}` : ""}`,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [credentials]);
+  }, [credentials, clientLabel]);
 
   const toolOptions: ComboboxOption[] = useMemo(() => {
     const counts = new Map<string, number>();
     for (const c of credentials) counts.set(c.asset_id, (counts.get(c.asset_id) ?? 0) + 1);
     return [...counts.entries()]
-      .map(([id, n]) => ({ value: id, label: toolLabel(id), hint: String(n) }))
+      .map(([id, n]) => ({ value: id, label: toolName(id), hint: String(n) }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [credentials]);
+  }, [credentials, toolName]);
 
   const filtered = useMemo(() => {
     return credentials.filter((c) => {
       if (client === "__none__" && c.client_key !== null) return false;
       if (client && client !== "__none__" && c.client_key !== client) return false;
       if (tool && c.asset_id !== tool) return false;
-      if (query.trim() && !matches(c, query.trim())) return false;
+      if (query.trim() && !matches(c, query.trim(), toolName, clientLabel)) return false;
       return true;
     });
-  }, [credentials, client, tool, query]);
+  }, [credentials, client, tool, query, toolName, clientLabel]);
 
   const narrowed = Boolean(query.trim() || client || tool);
 

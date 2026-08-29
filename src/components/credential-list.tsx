@@ -148,9 +148,15 @@ export function CredentialTableRow({
           ) : null}
         </td>
 
-        <td className="px-3 py-2.5 text-[13px] text-ink">{toolLabel(credential.asset_id)}</td>
+        <td className="px-3 py-2.5 text-[13px] text-ink">
+          {assets.find((a) => a.id === credential.asset_id)?.name ??
+            toolLabel(credential.asset_id)}
+        </td>
 
-        <td className="px-3 py-2.5 text-[13px] text-ink">{clientName(credential.client_key)}</td>
+        <td className="px-3 py-2.5 text-[13px] text-ink">
+          {clients.find((c) => c.id === credential.client_key)?.name ??
+            clientName(credential.client_key)}
+        </td>
 
         <td className="px-3 py-2.5">
           <span className="block max-w-[26ch] truncate text-[13px] text-ink-muted">
