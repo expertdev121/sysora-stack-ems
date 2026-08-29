@@ -20,6 +20,7 @@ import {
 import { StatusChip } from "@/components/ui/status";
 import { Callout, EmptyState } from "@/components/ui/callout";
 import { TimezoneForm } from "@/components/person-admin";
+import { CoverageBar, WeekStrip } from "@/components/dashboard-insights";
 import { requireSession, isStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { onboardingAsset } from "@/lib/team-assets";
@@ -166,6 +167,27 @@ export default async function DashboardPage() {
 
   const missingEod = teamToday.filter((t) => !t.eod && t.state !== "leave");
 
+  // Seven days ending today. The attendance query already spans this window,
+  // so the strip is free — no extra round trip.
+  const myWeek = Array.from({ length: 7 }, (_, i) => {
+    const date = addDaysISO(todayISO, i - 6);
+    const state: DayState = onLeaveToday.has(session.userId) && date === todayISO
+      ? "leave"
+      : (attendance.find((a) => a.profile_id === session.userId && a.work_date === date)?.status ??
+        (date < session.profile.joined_on ? "pre_joining" : "unmarked"));
+    return {
+      date,
+      state,
+      weekday: new Date(date + "T00:00:00Z").toLocaleDateString("en-GB", {
+        weekday: "narrow",
+        timeZone: "UTC",
+      }),
+    };
+  });
+
+  const coverage = (["present", "half_day", "leave", "absent", "unmarked"] as DayState[])
+    .map((state) => ({ state, n: teamToday.filter((t) => t.state === state).length }));
+
   return (
     <>
       <PageHeader
@@ -198,10 +220,11 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* ---- Your day ---------------------------------------------------- */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Attendance"
           icon={<CalendarCheck2 />}
+          className="sm:col-span-2 lg:col-span-2"
           footer={
             <Link
               href="/attendance"
@@ -212,7 +235,10 @@ export default async function DashboardPage() {
             </Link>
           }
         >
-          <StatusChip state={myStatus ?? "unmarked"} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <StatusChip state={myStatus ?? "unmarked"} />
+            <WeekStrip days={myWeek} />
+          </div>
         </StatCard>
 
         <StatCard
@@ -262,6 +288,20 @@ export default async function DashboardPage() {
 
       {/* ---- Staff view -------------------------------------------------- */}
       {staff ? (
+        <>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Marked in today</CardTitle>
+            <CardDescription>
+              Counted against each person&rsquo;s own local date, so a Toronto morning is not an
+              absence at nine in Pune.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CoverageBar counts={coverage} total={teamToday.length} />
+          </CardContent>
+        </Card>
+
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
@@ -362,6 +402,7 @@ export default async function DashboardPage() {
             </Card>
           </div>
         </div>
+        </>
       ) : (
         <Card>
           <CardHeader>

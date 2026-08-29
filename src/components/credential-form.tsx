@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { ChevronRight, Plus } from "lucide-react";
 import { saveCredential } from "@/app/actions/credentials";
 import { Button } from "@/components/ui/button";
-import { FieldRow, Input, Label, Select, Textarea } from "@/components/ui/field";
+import { FieldRow, Input, Label, Textarea } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import type { AppRole, CredentialSummary, GrantMode } from "@/lib/types";
 
 export interface FormOption {
@@ -28,6 +29,11 @@ function clientDisplay(key: string | null, clients: FormOption[]): string {
 function toolDisplay(assetId: string, assets: FormOption[]): string {
   return assets.find((a) => a.id === assetId)?.name ?? assetId;
 }
+
+const GRANT_CHOICES = [
+  { value: "allow", label: "Always" },
+  { value: "deny", label: "Never" },
+];
 
 const ROLE_CHOICES = [
   { value: "owner", label: "Owner", locked: true },
@@ -67,39 +73,37 @@ function CredentialFields({
 
       {/* ---- The six that matter ------------------------------------------ */}
       <div className="grid gap-3 sm:grid-cols-2">
-        {/* Free text with suggestions, not a dropdown. Pick an existing client
-            or tool, or type a new one — neither needs a code change. */}
+        {/* Searchable, but not a closed list: typing a name nothing matches
+            offers it as a new client or tool, so adding one is not a code
+            change. The value posted is the display name; the action slugifies
+            it, which is why an existing name must map back to its label. */}
         <FieldRow label="Client" htmlFor={`${idPrefix}-client`} hint="Pick one or type a new name.">
-          <Input
+          <Combobox
             id={`${idPrefix}-client`}
             name="client_key"
-            list={`${idPrefix}-client-options`}
             defaultValue={credential ? clientDisplay(credential.client_key, clients) : ""}
+            options={clients.map((c) => ({ value: c.name, label: c.name }))}
+            allowCustom
+            allowClear
+            clearLabel="Unassigned"
             placeholder="Unassigned"
-            autoComplete="off"
+            searchPlaceholder="Find or name a client…"
+            emptyText="Type a name to add it."
           />
-          <datalist id={`${idPrefix}-client-options`}>
-            {clients.map((client) => (
-              <option key={client.id} value={client.name} />
-            ))}
-          </datalist>
         </FieldRow>
 
         <FieldRow label="Tool" htmlFor={`${idPrefix}-asset`} hint="Pick one or type a new one.">
-          <Input
+          <Combobox
             id={`${idPrefix}-asset`}
             name="asset_id"
-            list={`${idPrefix}-asset-options`}
             required
             defaultValue={credential ? toolDisplay(credential.asset_id, assets) : ""}
+            options={assets.map((a) => ({ value: a.name, label: a.name }))}
+            allowCustom
             placeholder="e.g. Dropbox"
-            autoComplete="off"
+            searchPlaceholder="Find or name a tool…"
+            emptyText="Type a name to add it."
           />
-          <datalist id={`${idPrefix}-asset-options`}>
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.name} />
-            ))}
-          </datalist>
         </FieldRow>
 
         <FieldRow label="Label" htmlFor={`${idPrefix}-label`} hint="What this login is for.">
@@ -149,36 +153,10 @@ function CredentialFields({
       <details className="group/more mt-1 rounded-lg border border-line-soft bg-canvas px-3 py-2.5">
         <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-medium text-ink-muted">
           <ChevronRight className="size-4 transition-transform group-open/more:rotate-90" />
-          More options — second secret, notes, who can see it
+          More options — notes, who can see it
         </summary>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <FieldRow
-            label="Second secret — label"
-            htmlFor={`${idPrefix}-extra-label`}
-            hint="e.g. “Security answer”, “Backup code”."
-          >
-            <Input
-              id={`${idPrefix}-extra-label`}
-              name="extra_label"
-              defaultValue={credential?.extra_label ?? ""}
-              placeholder="Security answer"
-            />
-          </FieldRow>
-
-          <FieldRow
-            label="Second secret — value"
-            htmlFor={`${idPrefix}-extra`}
-            hint={isEdit ? "Blank keeps the current one." : "Encrypted, same as the password."}
-          >
-            <Input
-              id={`${idPrefix}-extra`}
-              name="extra_secret"
-              type="password"
-              autoComplete="off"
-            />
-          </FieldRow>
-
           <FieldRow label="Notes" htmlFor={`${idPrefix}-notes`} className="sm:col-span-2">
             <Textarea
               id={`${idPrefix}-notes`}
@@ -237,16 +215,15 @@ function CredentialFields({
                         {person.role}
                       </span>
                     </span>
-                    <Select
+                    <Combobox
                       name={`grant:${person.id}`}
                       defaultValue={grants?.[person.id] ?? ""}
-                      aria-label={`Access for ${person.name}`}
-                      className="h-8 w-32 shrink-0 text-[13px]"
-                    >
-                      <option value="">Follow roles</option>
-                      <option value="allow">Always</option>
-                      <option value="deny">Never</option>
-                    </Select>
+                      placeholder="Follow roles"
+                      options={GRANT_CHOICES}
+                      allowClear
+                      clearLabel="Follow roles"
+                      className="w-36 shrink-0"
+                    />
                   </label>
                 ))}
               </div>

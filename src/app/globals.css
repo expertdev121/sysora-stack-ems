@@ -87,7 +87,12 @@
 
   /* --- Type ---------------------------------------------------------------- */
   --font-sans: var(--font-geist), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-lato), var(--font-geist), system-ui, sans-serif;
+  --font-heading: var(--font-lato), var(--font-geist), system-ui, sans-serif;
+  /* Space Grotesk, as the site uses it: reserved for display — page titles,
+     the wordmark, and figures big enough to be read as a shape rather than a
+     number. Body text stays Geist; using a display face for prose is how a
+     dashboard starts looking like a poster. */
+  --font-display: var(--font-space-grotesk), var(--font-lato), var(--font-geist), system-ui, sans-serif;
 
   /* --- Radii --------------------------------------------------------------- */
   --radius-xs: 6px;
@@ -131,7 +136,7 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   color: var(--color-navy);
   font-weight: 800;
   letter-spacing: -0.3px;

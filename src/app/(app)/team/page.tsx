@@ -40,7 +40,9 @@ export default async function TeamPage() {
       .select("id, full_name, email, role, timezone, joined_on, is_active, must_change_password")
       .order("is_active", { ascending: false })
       .order("full_name"),
-    supabase.from("compensation").select("profile_id, monthly_amount, currency"),
+    supabase
+      .from("compensation")
+      .select("profile_id, engagement, monthly_amount, hourly_amount, currency"),
   ]);
 
   const people = (peopleRows ?? []) as Pick<
@@ -56,7 +58,7 @@ export default async function TeamPage() {
   >[];
   const comp = (compRows ?? []) as Pick<
     Compensation,
-    "profile_id" | "monthly_amount" | "currency"
+    "profile_id" | "engagement" | "monthly_amount" | "hourly_amount" | "currency"
   >[];
   const compFor = new Map(comp.map((c) => [c.profile_id, c]));
 
@@ -118,8 +120,8 @@ export default async function TeamPage() {
           <CardTitle>Everyone</CardTitle>
           {owner ? (
             <CardDescription>
-              Monthly pay is visible to you only — it lives in its own table behind an Owner-only
-              policy, so a Manager account cannot read it even through the API.
+              Pay is visible to you only. Full-time is a monthly salary; freelance is an hourly
+              rate.
             </CardDescription>
           ) : (
             <CardDescription>
@@ -132,7 +134,7 @@ export default async function TeamPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left">
-                  {["Person", "Role", "Timezone", "Joined", owner ? "Monthly pay" : null, ""]
+                  {["Person", "Role", "Timezone", "Joined", owner ? "Engagement & pay" : null, ""]
                     .filter(Boolean)
                     .map((label, i) => (
                       <th
@@ -189,7 +191,12 @@ export default async function TeamPage() {
                         <td className="py-3 pr-3">
                           <CompensationField
                             profileId={person.id}
-                            amount={compFor.get(person.id)?.monthly_amount ?? null}
+                            engagement={compFor.get(person.id)?.engagement ?? "full_time"}
+                            amount={
+                              compFor.get(person.id)?.engagement === "freelance"
+                                ? (compFor.get(person.id)?.hourly_amount ?? null)
+                                : (compFor.get(person.id)?.monthly_amount ?? null)
+                            }
                           />
                         </td>
                       ) : null}
@@ -211,13 +218,6 @@ export default async function TeamPage() {
             </table>
           </div>
 
-          {owner ? (
-            <Callout className="mt-4">
-              Pay is stored in <code>public.compensation</code>, never on the profile row. Postgres
-              RLS filters rows, not columns — so a salary column on <code>profiles</code> would be
-              readable by anyone who can read the row at all.
-            </Callout>
-          ) : null}
         </CardContent>
       </Card>
     </>

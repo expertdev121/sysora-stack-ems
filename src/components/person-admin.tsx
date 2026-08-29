@@ -12,7 +12,8 @@ import {
   type PeopleState,
 } from "@/app/actions/people";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { Callout } from "@/components/ui/callout";
 import type { AppRole } from "@/lib/types";
 
@@ -22,17 +23,28 @@ function report(result: PeopleState) {
   else toast.error(result.error);
 }
 
+export const ROLE_OPTIONS = [
+  { value: "employee", label: "Employee" },
+  { value: "bde", label: "BDE" },
+  { value: "manager", label: "Manager" },
+  { value: "owner", label: "Owner" },
+];
+
+export const ENGAGEMENT_OPTIONS = [
+  { value: "full_time", label: "Full-time" },
+  { value: "freelance", label: "Freelance" },
+];
+
 export function RoleSelect({ profileId, role }: { profileId: string; role: AppRole }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <Select
-      aria-label="Role"
-      defaultValue={role}
+    <Combobox
+      value={role}
       disabled={pending}
-      className="h-8 w-32 text-[13px]"
-      onChange={(event) => {
-        const value = event.target.value;
+      className="w-32"
+      options={ROLE_OPTIONS}
+      onChange={(value) => {
         startTransition(async () => {
           const data = new FormData();
           data.set("profile_id", profileId);
@@ -40,12 +52,7 @@ export function RoleSelect({ profileId, role }: { profileId: string; role: AppRo
           report(await setPersonRole(data));
         });
       }}
-    >
-      <option value="employee">Employee</option>
-      <option value="bde">BDE</option>
-      <option value="manager">Manager</option>
-      <option value="owner">Owner</option>
-    </Select>
+    />
   );
 }
 
@@ -112,43 +119,76 @@ export function ResetPasswordButton({ profileId }: { profileId: string }) {
   );
 }
 
+/**
+ * How someone is engaged, and what they are paid for it.
+ *
+ * The two are one control because they are one decision: a monthly figure
+ * against a freelancer is meaningless, and the table has a constraint that
+ * refuses it. Changing the engagement re-saves immediately so the pair can
+ * never disagree; changing the amount waits for blur, because a salary typed
+ * digit by digit would otherwise save four times on the way to 45000.
+ */
 export function CompensationField({
   profileId,
+  engagement,
   amount,
 }: {
   profileId: string;
+  engagement: "full_time" | "freelance";
   amount: string | null;
 }) {
   const [pending, startTransition] = useTransition();
+  const [kind, setKind] = useState(engagement);
   const [value, setValue] = useState(amount ?? "");
 
-  function save() {
-    if (value.trim() === (amount ?? "")) return;
+  function save(nextKind = kind, nextValue = value) {
+    if (!nextValue.trim()) return;
     startTransition(async () => {
       const data = new FormData();
       data.set("profile_id", profileId);
-      data.set("monthly_amount", value.trim());
+      data.set("engagement", nextKind);
+      data.set("amount", nextValue.trim());
       report(await setCompensation(data));
     });
   }
 
   return (
-    <Input
-      aria-label="Monthly pay"
-      inputMode="decimal"
-      value={value}
-      disabled={pending}
-      placeholder="—"
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={save}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          save();
-        }
-      }}
-      className="h-8 w-32 text-right text-[13px] tabular"
-    />
+    <div className="flex items-center justify-end gap-1.5">
+      <Combobox
+        value={kind}
+        disabled={pending}
+        className="w-32"
+        options={ENGAGEMENT_OPTIONS}
+        onChange={(next) => {
+          const nextKind = next as "full_time" | "freelance";
+          setKind(nextKind);
+          save(nextKind, value);
+        }}
+      />
+      <div className="relative">
+        <Input
+          aria-label={kind === "full_time" ? "Monthly salary" : "Hourly rate"}
+          inputMode="decimal"
+          value={value}
+          disabled={pending}
+          placeholder="—"
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={() => {
+            if (value.trim() !== (amount ?? "")) save();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              save();
+            }
+          }}
+          className="tabular h-8 w-28 pr-9 text-right text-[13px]"
+        />
+        <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] text-ink-faint">
+          {kind === "full_time" ? "/mo" : "/hr"}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -156,25 +196,20 @@ export function TimezoneForm({ current, zones }: { current: string; zones: strin
   const [pending, startTransition] = useTransition();
 
   return (
-    <Select
-      aria-label="Your timezone"
-      defaultValue={current}
+    <Combobox
+      value={current}
       disabled={pending}
-      className="h-9 w-full max-w-xs text-[13px]"
-      onChange={(event) => {
-        const value = event.target.value;
+      className="w-full max-w-xs"
+      options={zones.map((zone) => ({ value: zone, label: zone }))}
+      searchPlaceholder="Find a timezone…"
+      emptyText="No timezone by that name."
+      onChange={(value) => {
         startTransition(async () => {
           const data = new FormData();
           data.set("timezone", value);
           report(await updateMyTimezone(data));
         });
       }}
-    >
-      {zones.map((zone) => (
-        <option key={zone} value={zone}>
-          {zone}
-        </option>
-      ))}
-    </Select>
+    />
   );
 }

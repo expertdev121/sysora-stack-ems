@@ -28,9 +28,9 @@ export default async function TeamAssetsPage() {
       // extra_ciphertext is deliberately NOT selected — only its label, so the
       // UI can say a second secret exists without shipping it to the browser.
       .select(
-        "id, asset_id, client_key, label, username, url, notes, visible_to_roles, rotated_at, extra_label",
+        "id, ref, asset_id, client_key, label, username, url, notes, visible_to_roles, rotated_at, extra_label",
       )
-      .order("label"),
+      .order("ref"),
     // Employees can only read their own profile, so this list is populated for
     // staff and empty for everyone else — which is fine, since only the Owner
     // sees the sharing controls that use it.
@@ -113,11 +113,12 @@ export default async function TeamAssetsPage() {
         </div>
       ) : null}
 
-      {/* ---- Credentials, searchable, grouped by client ------------------ */}
+      {/* ---- Credentials: one table, filtered and searched ---------------- */}
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-navy">Logins by client</h2>
+        <h2 className="text-lg font-semibold text-navy">Logins</h2>
         <p className="mt-1 text-[13px] text-ink-muted">
-          Encrypted at rest. Every reveal is recorded against your name.
+          Filter by client or tool, or search across every field. Encrypted at rest — every reveal
+          is recorded against your name. Quote the ID when you tell someone which login to use.
         </p>
 
         {isOwner ? (

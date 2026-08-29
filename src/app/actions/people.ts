@@ -199,13 +199,26 @@ export async function setCompensation(formData: FormData): Promise<PeopleState> 
   if (!session) return { ok: false, error: "Only the Owner can set pay." };
 
   const profileId = String(formData.get("profile_id") ?? "");
-  const raw = String(formData.get("monthly_amount") ?? "").trim();
+  const engagement = String(formData.get("engagement") ?? "full_time");
+  const raw = String(formData.get("amount") ?? "").trim();
   if (!profileId) return { ok: false, error: "Missing person." };
+  if (engagement !== "full_time" && engagement !== "freelance") {
+    return { ok: false, error: "Pick full-time or freelance." };
+  }
 
   const amount = Number(raw);
   if (!Number.isFinite(amount) || amount < 0) {
     return { ok: false, error: "Enter a number." };
   }
+
+  // A monthly salary and an hourly rate are different facts, and the table has
+  // a constraint saying exactly one of them is filled. Setting the pair here
+  // rather than only the one that changed means switching someone from
+  // full-time to freelance cannot leave a stale salary behind it.
+  const amounts =
+    engagement === "full_time"
+      ? { monthly_amount: amount, hourly_amount: null }
+      : { monthly_amount: null, hourly_amount: amount };
 
   const supabase = await createClient();
 
@@ -220,12 +233,13 @@ export async function setCompensation(formData: FormData): Promise<PeopleState> 
   const { error } = existing
     ? await supabase
         .from("compensation")
-        .update({ monthly_amount: amount })
+        .update({ engagement, ...amounts })
         .eq("id", existing.id)
     : await supabase.from("compensation").insert({
         org_id: session.org.id,
         profile_id: profileId,
-        monthly_amount: amount,
+        engagement,
+        ...amounts,
         currency: "INR",
       });
 

@@ -117,6 +117,12 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
   const secret = String(formData.get("secret") ?? "");
   const url = String(formData.get("url") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  // The form no longer offers a second secret, but six credentials still
+  // hold one from when it did. has() rather than get() is the whole point:
+  // an absent field means "this form doesn't manage that column", while a
+  // present-but-empty one means "clear it". Reading with get() alone would
+  // treat every save from the current form as a request to erase them.
+  const managesExtra = formData.has("extra_label") || formData.has("extra_secret");
   const extraLabel = String(formData.get("extra_label") ?? "").trim() || null;
   const extraSecret = String(formData.get("extra_secret") ?? "");
 
@@ -141,14 +147,16 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
       username,
       url,
       notes,
-      extra_label: extraLabel,
       visible_to_roles: visibleTo.length > 0 ? visibleTo : ["owner"],
     };
     if (secret) update.secret_ciphertext = encryptSecret(secret);
     // Blank keeps the stored value; clearing the label clears the secret too,
     // so a second secret cannot be left orphaned with no name.
-    if (extraSecret) update.extra_ciphertext = encryptSecret(extraSecret);
-    else if (!extraLabel) update.extra_ciphertext = null;
+    if (managesExtra) {
+      update.extra_label = extraLabel;
+      if (extraSecret) update.extra_ciphertext = encryptSecret(extraSecret);
+      else if (!extraLabel) update.extra_ciphertext = null;
+    }
 
     const { error } = await supabase.from("credentials").update(update).eq("id", id);
     if (error) return { ok: false, error: humanise(error.message) };

@@ -5,7 +5,9 @@ import { useFormStatus } from "react-dom";
 import { Check, Copy } from "lucide-react";
 import { createPerson, type PeopleState } from "@/app/actions/people";
 import { Button } from "@/components/ui/button";
-import { FieldRow, Input, Select } from "@/components/ui/field";
+import { FieldRow, Input } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
+import { ROLE_OPTIONS } from "@/components/person-admin";
 import { Callout } from "@/components/ui/callout";
 
 const COMMON_ZONES = [
@@ -89,12 +91,7 @@ export function AddPersonForm({ today }: { today: string }) {
         </FieldRow>
 
         <FieldRow label="Role" htmlFor="new-role">
-          <Select id="new-role" name="role" defaultValue="employee">
-            <option value="employee">Employee</option>
-            <option value="bde">BDE</option>
-            <option value="manager">Manager</option>
-            <option value="owner">Owner</option>
-          </Select>
+          <Combobox id="new-role" name="role" defaultValue="employee" options={ROLE_OPTIONS} />
         </FieldRow>
 
         <FieldRow
@@ -102,13 +99,13 @@ export function AddPersonForm({ today }: { today: string }) {
           htmlFor="new-timezone"
           hint="Their day boundary for attendance and EOD."
         >
-          <Select id="new-timezone" name="timezone" defaultValue="Asia/Kolkata">
-            {COMMON_ZONES.map((zone) => (
-              <option key={zone} value={zone}>
-                {zone}
-              </option>
-            ))}
-          </Select>
+          <Combobox
+            id="new-timezone"
+            name="timezone"
+            defaultValue="Asia/Kolkata"
+            options={COMMON_ZONES.map((zone) => ({ value: zone, label: zone }))}
+            searchPlaceholder="Find a timezone…"
+          />
         </FieldRow>
 
         <FieldRow label="Start date" htmlFor="joined_on">

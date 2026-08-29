@@ -16,7 +16,7 @@ export const DAY_STATE_LABEL: Record<DayState, string> = {
  * Solid mint / half-filled mint / solid cool grey / navy hatch — so the grid
  * stays instantly readable while mint remains the only saturated colour.
  */
-const DAY_STATE_CELL: Record<DayState, string> = {
+export const DAY_STATE_CELL: Record<DayState, string> = {
   present: "bg-mint border-mint",
   half_day: "status-fill-half border-mint-line",
   absent: "bg-[var(--color-status-absent)] border-[var(--color-status-absent)]",

@@ -4,7 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { requestLeave } from "@/app/actions/leave";
 import { Button } from "@/components/ui/button";
-import { FieldRow, Input, Select, Textarea } from "@/components/ui/field";
+import { FieldRow, Input, Textarea } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { diffDaysISO } from "@/lib/dates";
 
 export function LeaveRequestForm({
@@ -69,10 +70,15 @@ export function LeaveRequestForm({
           htmlFor="leave_type"
           hint={`${remainingPaid} paid ${remainingPaid === 1 ? "day" : "days"} left this year`}
         >
-          <Select id="leave_type" name="leave_type" defaultValue="paid">
-            <option value="paid">Paid</option>
-            <option value="unpaid">Unpaid</option>
-          </Select>
+          <Combobox
+            id="leave_type"
+            name="leave_type"
+            defaultValue="paid"
+            options={[
+              { value: "paid", label: "Paid" },
+              { value: "unpaid", label: "Unpaid" },
+            ]}
+          />
         </FieldRow>
       </div>
 

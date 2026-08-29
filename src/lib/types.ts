@@ -81,11 +81,17 @@ export interface EodReport {
   source: string;
 }
 
+export type Engagement = "full_time" | "freelance";
+
 export interface Compensation {
   id: string;
   org_id: string;
   profile_id: string;
-  monthly_amount: string;
+  engagement: Engagement;
+  /** Set for full_time, null for freelance — a check constraint enforces it. */
+  monthly_amount: string | null;
+  /** Set for freelance, null for full_time. */
+  hourly_amount: string | null;
   currency: string;
   effective_from: string;
   note: string | null;
@@ -144,6 +150,8 @@ export interface CredentialGrant {
 /** What the client is allowed to know about a credential before revealing it. */
 export interface CredentialSummary {
   id: string;
+  /** Human-readable and stable: "CRD-0042". What you quote to a person. */
+  ref: string;
   asset_id: string;
   client_key: string | null;
   label: string;

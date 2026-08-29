@@ -1,14 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Lato } from "next/font/google";
+import { Geist, Lato, Space_Grotesk } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-// The pairing sysorastack.com uses: Lato for headings, Geist for everything
-// else. Loaded through next/font so they self-host and don't shift on load.
+// The same three faces sysorastack.com uses: Space Grotesk for display,
+// Lato for headings, Geist for everything else. Loaded through next/font so
+// they self-host and don't shift on load.
 const geist = Geist({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-geist",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-space-grotesk",
   display: "swap",
 });
 
@@ -38,7 +46,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${lato.variable}`}>
+    <html lang="en" className={`${geist.variable} ${lato.variable} ${spaceGrotesk.variable}`}>
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster
