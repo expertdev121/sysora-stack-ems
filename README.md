@@ -130,20 +130,19 @@ openssl rand -base64 32   # use the output as N8N_WEBHOOK_SECRET
 
 and set `N8N_EOD_FORM_URL` plus the `N8N_EOD_PARAM_*` labels (see the n8n section below).
 
-### 2. Pick the right Supabase project — read this before running any SQL
+### 2. The Supabase project
 
-Your account has two:
+There is one: **Sysora Stack Automation**, `xulhgkrsqpodlokzpbig`. Everything Sysora runs on lives in it, separated by schema rather than by project:
 
-| Project | Ref | State |
+| Schema | Holds | Read by |
 |---|---|---|
-| **Sysora Stack Team** | `svpuqzrofbecmabmcevb` | **Not empty.** Holds the Sysora *product* database — `User`, `Plan`, `Subscription`, `Agent`, `ChatSession`, `Contact`, and ~50 more, some with live rows. This is the project whose keys are currently in `.env.local`. |
-| **Sysora Stack Automation** | `xulhgkrsqpodlokzpbig` | Empty. Created 22 Aug 2026. |
+| `public` | This app — orgs, profiles, attendance, leave, end-of-day reports | This app |
+| `sales` | Revenue, targets, spend, the checkout | sysora-sales, sysora-web |
+| `product` | The Sysora product database — `User`, `Plan`, `Agent`, ~50 more | The product app |
 
-These migrations create snake_case tables (`orgs`, `profiles`, `attendance`, …) so they will not collide with the PascalCase product tables. But putting your team's salary data in the same schema as your product's customer data means one anon key, one blast radius, and one set of RLS policies to reason about.
+Schemas rather than separate projects because they can join. A BDE's bid count, filed here in `public.eod_metrics`, is read directly by `sales.activity_progress` to move a revenue target. Across two projects that query is impossible and the number has to be copied — which means it can drift.
 
-**Recommended: point this app at `xulhgkrsqpodlokzpbig`.** That is three values in `.env.local` — URL, anon key, service role key — and zero code changes.
-
-If you'd rather keep it in the product project, run the migrations there as-is; they're scoped to their own tables and the `anon` revoke is table-by-table specifically so it can't strip your product's grants.
+The old **Sysora Stack Team** project (`svpuqzrofbecmabmcevb`) held the product database until 26 Aug 2026. Its 55 tables were copied into `product` and verified identical by row-content fingerprint; its five storage objects were copied into this project's `hireai-uploads` bucket, and the 21 absolute URLs pointing at the old host were rewritten to this one. Nothing should reference it any more.
 
 ### 3. Migrations
 
@@ -336,6 +335,6 @@ Cut from Phase 1 on purpose, with the reasoning:
 
 ## Known limits worth knowing
 
-- **Types are hand-written** in `src/lib/types.ts` rather than generated, so the repo has no build-time dependency on the Supabase CLI. Once you're running migrations regularly, switch: `npx supabase gen types typescript --project-id svpuqzrofbecmabmcevb > src/lib/database.types.ts`.
+- **Types are hand-written** in `src/lib/types.ts` rather than generated, so the repo has no build-time dependency on the Supabase CLI. Once you're running migrations regularly, switch: `npx supabase gen types typescript --project-id xulhgkrsqpodlokzpbig > src/lib/database.types.ts`.
 - **The webhook has no rate limit.** It's protected by a shared secret and it's not a public endpoint, but at 10 people it's worth adding one.
 - **A leave request that straddles a month or year boundary** is counted whole, in the month it starts.
