@@ -33,6 +33,7 @@ const ROLE_CHOICES = [
   { value: "owner", label: "Owner", locked: true },
   { value: "manager", label: "Manager", locked: false },
   { value: "employee", label: "Employee", locked: false },
+  { value: "bde", label: "BDE", locked: false },
 ] as const;
 
 /**

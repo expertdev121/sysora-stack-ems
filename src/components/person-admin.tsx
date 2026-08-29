@@ -42,6 +42,7 @@ export function RoleSelect({ profileId, role }: { profileId: string; role: AppRo
       }}
     >
       <option value="employee">Employee</option>
+      <option value="bde">BDE</option>
       <option value="manager">Manager</option>
       <option value="owner">Owner</option>
     </Select>

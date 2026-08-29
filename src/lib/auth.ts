@@ -65,7 +65,12 @@ export async function requireUser(): Promise<Session> {
 
 export async function requireStaff(): Promise<Session> {
   const session = await requireSession();
-  if (session.profile.role === "employee") redirect("/dashboard");
+  // Named allow-list, not "everyone except employee". The database says
+  // the same thing in auth_is_staff() — 'owner', 'manager' — and the two
+  // must agree, or a role added later walks through this gate and then
+  // meets an RLS policy that returns nothing, which reads as a broken
+  // page rather than a closed door. BDE is what added the fourth role.
+  if (!isStaff(session.profile)) redirect("/dashboard");
   return session;
 }
 

@@ -30,6 +30,7 @@ const ROLE_LABEL: Record<AppRole, string> = {
   owner: "Owner",
   manager: "Manager",
   employee: "Employee",
+  bde: "BDE",
 };
 
 /** Renders only after mount so the server HTML and the client agree. */

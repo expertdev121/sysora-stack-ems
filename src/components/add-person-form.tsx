@@ -91,6 +91,7 @@ export function AddPersonForm({ today }: { today: string }) {
         <FieldRow label="Role" htmlFor="new-role">
           <Select id="new-role" name="role" defaultValue="employee">
             <option value="employee">Employee</option>
+            <option value="bde">BDE</option>
             <option value="manager">Manager</option>
             <option value="owner">Owner</option>
           </Select>

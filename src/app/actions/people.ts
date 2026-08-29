@@ -13,7 +13,7 @@ export type PeopleState =
   | { ok: false; error: string }
   | null;
 
-const ROLES: AppRole[] = ["owner", "manager", "employee"];
+const ROLES: AppRole[] = ["owner", "manager", "employee", "bde"];
 
 /** 16 URL-safe characters. Shown to the Owner exactly once, never stored. */
 function generateTempPassword(): string {

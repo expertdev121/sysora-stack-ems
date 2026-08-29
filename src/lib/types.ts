@@ -7,7 +7,7 @@
  * is strictly better — see README.
  */
 
-export type AppRole = "owner" | "manager" | "employee";
+export type AppRole = "owner" | "manager" | "employee" | "bde";
 export type AttendanceStatus = "present" | "half_day" | "absent";
 export type LeaveType = "paid" | "unpaid";
 export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
