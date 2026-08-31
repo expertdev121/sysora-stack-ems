@@ -30,6 +30,15 @@ export const TEAM_ASSETS: TeamAsset[] = [
     // person doing the onboarding.
   },
   {
+    id: "english-vocab",
+    name: "English vocabulary",
+    description:
+      "Shared word list for the team. Opens in Google Drive — no login of its own.",
+    href: "https://drive.google.com/file/d/1EY36Ea1q_KOm5G0sxGwnZkLKtrqqTja4/view?usp=sharing",
+    // Everyone: it is a reference, and the people most likely to want it are
+    // the ones least likely to be told it exists.
+  },
+  {
     id: "jira",
     name: "Jira board",
     description:
