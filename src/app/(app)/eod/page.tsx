@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { EodForm } from "@/components/eod-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +53,11 @@ function renderValue(value: unknown): string {
 
 export default async function EodPage() {
   const session = await requireSession();
+
+  // A BDE reports the day by logging bids, and files it from there. Sending
+  // them here as well would give them two forms for one day, which is how the
+  // two end up disagreeing.
+  if (session.profile.role === "bde") redirect("/bids");
   const supabase = await createClient();
   const staff = isStaff(session.profile);
 

@@ -136,3 +136,100 @@ function humanise(message: string): string {
   }
   return message;
 }
+
+/**
+ * File the day from the bids page.
+ *
+ * A BDE does not see the EOD form — logging bids *is* their report. But the
+ * end-of-day row still has to exist: staff dashboards ask who has filed today,
+ * and a bidder who never files would read as permanently missing rather than
+ * as someone whose work is recorded elsewhere.
+ *
+ * So the summary is composed from the day's bids rather than retyped, and the
+ * two fields a bid log cannot capture — what is blocking them, how they are
+ * doing — are asked for directly. Same table, same upsert, same one-row-per-
+ * day rule as everyone else's report.
+ */
+export async function fileBidderDay(formData: FormData): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Your session expired. Sign in again." };
+
+  const blockers = String(formData.get("blockers") ?? "").trim();
+  const rawMood = String(formData.get("mood") ?? "").trim();
+
+  let mood: number | null = null;
+  if (rawMood) {
+    const parsed = Number(rawMood);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
+      return { ok: false, error: "Pick a number from 1 to 10, or leave it blank." };
+    }
+    mood = parsed;
+  }
+
+  const today = localDateISO(session.profile.timezone);
+  const sales = await createSalesClient();
+
+  const { data: bids, error: readError } = await sales
+    .from("proposals")
+    .select("job_title, connects_spent, client_name")
+    .eq("submitted_on", today)
+    .eq("submitted_by", session.userId)
+    .order("created_at", { ascending: true });
+
+  if (readError) return { ok: false, error: humanise(readError.message) };
+
+  const rows = bids ?? [];
+  if (rows.length === 0 && !blockers) {
+    return {
+      ok: false,
+      error: "Log at least one bid, or say what's blocking you — otherwise there's nothing to file.",
+    };
+  }
+
+  const connects = rows.reduce((sum, b) => sum + (b.connects_spent ?? 0), 0);
+  const summary =
+    rows.length === 0
+      ? "No bids today."
+      : `Bid on ${rows.length} ${rows.length === 1 ? "job" : "jobs"} using ${connects} connects.`;
+
+  const workDone = [
+    summary,
+    ...rows.map(
+      (b) =>
+        `• ${b.job_title}${b.client_name ? ` (${b.client_name})` : ""} — ${b.connects_spent} connects`,
+    ),
+  ].join("\n");
+
+  // The EOD table lives in `public`, so this goes through the ordinary client.
+  // eod_insert_self is the gate, exactly as it is for everyone else's report.
+  const { createClient } = await import("@/lib/supabase/server");
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("eod_reports").upsert(
+    {
+      profile_id: session.userId,
+      org_id: session.org.id,
+      report_date: today,
+      summary: summary.slice(0, 500),
+      mood,
+      payload: {
+        work_done: workDone,
+        blockers: blockers || "None",
+        name: session.profile.full_name,
+        email: session.email,
+        date: today,
+        bids: rows.length,
+        connects,
+      },
+      submitted_at: new Date().toISOString(),
+      source: "bids",
+    },
+    { onConflict: "profile_id,report_date" },
+  );
+
+  if (error) return { ok: false, error: humanise(error.message) };
+
+  revalidatePath("/bids");
+  revalidatePath("/dashboard");
+  return { ok: true, message: rows.length > 0 ? "Day filed." : "Blocker recorded." };
+}

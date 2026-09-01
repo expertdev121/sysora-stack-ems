@@ -18,22 +18,33 @@ import { localTime, zoneLabel } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import type { AppRole } from "@/lib/types";
 
-/** Visible to every role — Owner, Manager and Employee alike. */
+const EOD_NAV = { href: "/eod", label: "EOD Report", icon: NotebookPen } as const;
+const BID_NAV = { href: "/bids", label: "My bids", icon: Target } as const;
+
+/** Every role sees these. */
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck2 },
   { href: "/leave", label: "Leave", icon: Plane },
-  { href: "/eod", label: "EOD Report", icon: NotebookPen },
-  { href: "/assets", label: "Team assets", icon: LayoutGrid },
 ] as const;
 
+const TAIL = [{ href: "/assets", label: "Team assets", icon: LayoutGrid }] as const;
+
 /**
- * Bidding, for the people who do it and the people who read it.
+ * A BDE reports the day by logging bids, so My bids replaces EOD Report
+ * rather than sitting beside it — two places to describe one day is how they
+ * end up disagreeing. The bids page files the end-of-day itself, so a bidder
+ * still shows up in the team's coverage and can still raise a blocker.
  *
- * Not in NAV because an Employee who never touches Upwork does not need a
- * page telling them they have logged no bids.
+ * Everyone else keeps the EOD form. Staff see both: they file their own day
+ * and read everyone's bidding.
  */
-const BID_NAV = { href: "/bids", label: "My bids", icon: Target } as const;
+function navFor(role: AppRole) {
+  const staff = role === "owner" || role === "manager";
+  if (role === "bde") return [...NAV, BID_NAV, ...TAIL];
+  if (staff) return [...NAV, EOD_NAV, BID_NAV, ...TAIL];
+  return [...NAV, EOD_NAV, ...TAIL];
+}
 
 const ROLE_LABEL: Record<AppRole, string> = {
   owner: "Owner",
@@ -135,18 +146,9 @@ export function AppSidebar({
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
           <p className="eyebrow px-3 pt-2 pb-2">Workspace</p>
-          {NAV.map(({ href, label, icon }) => (
+          {navFor(role).map(({ href, label, icon }) => (
             <NavLink key={href} href={href} label={label} icon={icon} active={isActive(href)} />
           ))}
-
-          {(role === "bde" || staff) && (
-            <NavLink
-              href={BID_NAV.href}
-              label={BID_NAV.label}
-              icon={BID_NAV.icon}
-              active={isActive(BID_NAV.href)}
-            />
-          )}
 
           {staff ? (
             <>
@@ -201,8 +203,7 @@ export function AppSidebar({
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-2">
           {[
-            ...NAV,
-            ...(role === "bde" || staff ? [BID_NAV] : []),
+            ...navFor(role),
             ...(staff ? [{ href: "/team", label: "Team", icon: Users } as const] : []),
           ].map(
             ({ href, label, icon: Icon }) => {

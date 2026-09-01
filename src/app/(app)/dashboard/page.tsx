@@ -68,6 +68,7 @@ export default async function DashboardPage() {
   const session = await requireSession();
   const supabase = await createClient();
   const staff = isStaff(session.profile);
+  const bidder = session.profile.role === "bde";
 
   const todayISO = localDateISO(session.profile.timezone);
   const year = Number(todayISO.slice(0, 4));
@@ -241,15 +242,17 @@ export default async function DashboardPage() {
           </div>
         </StatCard>
 
+        {/* A BDE has no EOD form — logging bids is the report, and it is filed
+            from there. Sending them to /eod would only bounce them back. */}
         <StatCard
-          label="EOD report"
+          label={bidder ? "Bids" : "EOD report"}
           icon={<NotebookPen />}
           footer={
             <Link
-              href="/eod"
+              href={bidder ? "/bids" : "/eod"}
               className="inline-flex items-center gap-1 font-medium text-mint-deep hover:underline"
             >
-              {myEodToday ? "View history" : "Fill it in"}
+              {bidder ? (myEodToday ? "Add another" : "Log today's") : myEodToday ? "View history" : "Fill it in"}
               <ArrowRight className="size-3.5" />
             </Link>
           }
