@@ -10,6 +10,7 @@ import {
   LogOut,
   NotebookPen,
   Plane,
+  Target,
   Users,
 } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
@@ -25,6 +26,14 @@ const NAV = [
   { href: "/eod", label: "EOD Report", icon: NotebookPen },
   { href: "/assets", label: "Team assets", icon: LayoutGrid },
 ] as const;
+
+/**
+ * Bidding, for the people who do it and the people who read it.
+ *
+ * Not in NAV because an Employee who never touches Upwork does not need a
+ * page telling them they have logged no bids.
+ */
+const BID_NAV = { href: "/bids", label: "My bids", icon: Target } as const;
 
 const ROLE_LABEL: Record<AppRole, string> = {
   owner: "Owner",
@@ -130,6 +139,15 @@ export function AppSidebar({
             <NavLink key={href} href={href} label={label} icon={icon} active={isActive(href)} />
           ))}
 
+          {(role === "bde" || staff) && (
+            <NavLink
+              href={BID_NAV.href}
+              label={BID_NAV.label}
+              icon={BID_NAV.icon}
+              active={isActive(BID_NAV.href)}
+            />
+          )}
+
           {staff ? (
             <>
               <p className="eyebrow px-3 pt-5 pb-2">Manage</p>
@@ -182,7 +200,11 @@ export function AppSidebar({
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-2">
-          {[...NAV, ...(staff ? [{ href: "/team", label: "Team", icon: Users } as const] : [])].map(
+          {[
+            ...NAV,
+            ...(role === "bde" || staff ? [BID_NAV] : []),
+            ...(staff ? [{ href: "/team", label: "Team", icon: Users } as const] : []),
+          ].map(
             ({ href, label, icon: Icon }) => {
               const active = isActive(href);
               return (
