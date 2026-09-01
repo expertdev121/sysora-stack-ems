@@ -75,6 +75,8 @@ export async function logBid(formData: FormData): Promise<ActionResult> {
 
   if (error) return { ok: false, error: humanise(error.message) };
 
+  await syncDayReport(session, submittedOn);
+
   revalidatePath("/bids");
   revalidatePath("/dashboard");
   return { ok: true, message: "Logged." };
@@ -119,11 +121,22 @@ export async function deleteBid(formData: FormData): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing bid." };
 
   const supabase = await createSalesClient();
+
+  // Read the day before it goes, so the report for that day can be rebuilt.
+  const { data: doomed } = await supabase
+    .from("proposals")
+    .select("submitted_on")
+    .eq("id", id)
+    .maybeSingle<{ submitted_on: string }>();
+
   const { error } = await supabase.from("proposals").delete().eq("id", id);
 
   if (error) return { ok: false, error: humanise(error.message) };
 
+  if (doomed) await syncDayReport(session, doomed.submitted_on);
+
   revalidatePath("/bids");
+  revalidatePath("/dashboard");
   return { ok: true, message: "Removed." };
 }
 
@@ -138,86 +151,66 @@ function humanise(message: string): string {
 }
 
 /**
- * File the day from the bids page.
+ * Keep the day's end-of-day report in step with the bids logged.
  *
- * A BDE does not see the EOD form — logging bids *is* their report. But the
- * end-of-day row still has to exist: staff dashboards ask who has filed today,
- * and a bidder who never files would read as permanently missing rather than
- * as someone whose work is recorded elsewhere.
+ * A BDE has no end-of-day form: logging bids is the report. But the row still
+ * has to exist, because staff dashboards ask who has filed today and a bidder
+ * who never files would read as permanently missing rather than as someone
+ * whose work is recorded elsewhere.
  *
- * So the summary is composed from the day's bids rather than retyped, and the
- * two fields a bid log cannot capture — what is blocking them, how they are
- * doing — are asked for directly. Same table, same upsert, same one-row-per-
- * day rule as everyone else's report.
+ * So it is written from the bids themselves and rewritten whenever they
+ * change. Nobody types a summary of a list that is sitting right there.
+ *
+ * Blockers and mood are not collected from a bidder any more. That is a real
+ * loss — "waiting on a connects top-up" has nowhere to go — and worth
+ * revisiting if it starts to bite.
  */
-export async function fileBidderDay(formData: FormData): Promise<ActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: "Your session expired. Sign in again." };
-
-  const blockers = String(formData.get("blockers") ?? "").trim();
-  const rawMood = String(formData.get("mood") ?? "").trim();
-
-  let mood: number | null = null;
-  if (rawMood) {
-    const parsed = Number(rawMood);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
-      return { ok: false, error: "Pick a number from 1 to 10, or leave it blank." };
-    }
-    mood = parsed;
-  }
-
-  const today = localDateISO(session.profile.timezone);
+async function syncDayReport(
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>,
+  day: string,
+): Promise<void> {
   const sales = await createSalesClient();
 
-  const { data: bids, error: readError } = await sales
+  const { data: bids } = await sales
     .from("proposals")
     .select("job_title, connects_spent, client_name")
-    .eq("submitted_on", today)
+    .eq("submitted_on", day)
     .eq("submitted_by", session.userId)
     .order("created_at", { ascending: true });
 
-  if (readError) return { ok: false, error: humanise(readError.message) };
-
   const rows = bids ?? [];
-  if (rows.length === 0 && !blockers) {
-    return {
-      ok: false,
-      error: "Log at least one bid, or say what's blocking you — otherwise there's nothing to file.",
-    };
-  }
-
-  const connects = rows.reduce((sum, b) => sum + (b.connects_spent ?? 0), 0);
-  const summary =
-    rows.length === 0
-      ? "No bids today."
-      : `Bid on ${rows.length} ${rows.length === 1 ? "job" : "jobs"} using ${connects} connects.`;
-
-  const workDone = [
-    summary,
-    ...rows.map(
-      (b) =>
-        `• ${b.job_title}${b.client_name ? ` (${b.client_name})` : ""} — ${b.connects_spent} connects`,
-    ),
-  ].join("\n");
-
-  // The EOD table lives in `public`, so this goes through the ordinary client.
-  // eod_insert_self is the gate, exactly as it is for everyone else's report.
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
 
-  const { error } = await supabase.from("eod_reports").upsert(
+  const connects = rows.reduce((sum, b) => sum + (b.connects_spent ?? 0), 0);
+
+  // Removing the last bid rewrites the day rather than deleting it. There is
+  // deliberately no delete policy on eod_reports — a filed day is a record,
+  // which is the whole reason yesterday's is read-only — so the honest move is
+  // to say the day ended with nothing rather than to make it disappear.
+  const summary =
+    rows.length === 0
+      ? "No bids logged today."
+      : `Bid on ${rows.length} ${rows.length === 1 ? "job" : "jobs"} using ${connects} connects.`;
+
+  await supabase.from("eod_reports").upsert(
     {
       profile_id: session.userId,
       org_id: session.org.id,
-      report_date: today,
-      summary: summary.slice(0, 500),
-      mood,
+      report_date: day,
+      summary,
       payload: {
-        work_done: workDone,
-        blockers: blockers || "None",
+        work_done: [
+          summary,
+          ...rows.map(
+            (b) =>
+              `• ${b.job_title}${b.client_name ? ` (${b.client_name})` : ""} — ${b.connects_spent} connects`,
+          ),
+        ].join("\n"),
+        blockers: "None",
         name: session.profile.full_name,
         email: session.email,
-        date: today,
+        date: day,
         bids: rows.length,
         connects,
       },
@@ -226,10 +219,4 @@ export async function fileBidderDay(formData: FormData): Promise<ActionResult> {
     },
     { onConflict: "profile_id,report_date" },
   );
-
-  if (error) return { ok: false, error: humanise(error.message) };
-
-  revalidatePath("/bids");
-  revalidatePath("/dashboard");
-  return { ok: true, message: rows.length > 0 ? "Day filed." : "Blocker recorded." };
 }

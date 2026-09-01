@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/page-header";
 import { BidForm, BidList, type Bid } from "@/components/bid-form";
-import { BidderDay } from "@/components/bidder-day";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { StatusChip } from "@/components/ui/status";
 import { requireSession, isStaff } from "@/lib/auth";
 import { createSalesClient } from "@/lib/supabase/sales";
-import { createClient } from "@/lib/supabase/server";
 import { humanDate, localDateISO } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "My bids" };
@@ -80,22 +78,6 @@ export default async function BidsPage() {
 
   const todayBids = mine.filter((b) => b.submitted_on === today);
   const todayConnects = todayBids.reduce((sum, b) => sum + b.connects_spent, 0);
-
-  // A bidder files the day from here rather than from the EOD form, so the
-  // existing row is read back to prefill it — saving again updates rather
-  // than blanking what was already said.
-  const publicDb = await createClient();
-  const { data: eodToday } = await publicDb
-    .from("eod_reports")
-    .select("mood, payload")
-    .eq("profile_id", session.userId)
-    .eq("report_date", today)
-    .maybeSingle<{ mood: number | null; payload: Record<string, unknown> | null }>();
-
-  const filedBlockers =
-    typeof eodToday?.payload?.blockers === "string" && eodToday.payload.blockers !== "None"
-      ? (eodToday.payload.blockers as string)
-      : "";
 
   const monthStart = today.slice(0, 8) + "01";
   const monthBids = mine.filter((b) => b.submitted_on >= monthStart);
@@ -180,25 +162,6 @@ export default async function BidsPage() {
         </CardHeader>
         <CardContent>
           <BidForm />
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>End the day</CardTitle>
-          <CardDescription>
-            This is your end-of-day report. The summary comes from the bids above; these two
-            fields are what it can&rsquo;t work out on its own.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <BidderDay
-            bidsToday={todayBids.length}
-            connectsToday={todayConnects}
-            filed={Boolean(eodToday)}
-            existingBlockers={filedBlockers}
-            existingMood={eodToday?.mood ?? null}
-          />
         </CardContent>
       </Card>
 
