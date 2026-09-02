@@ -43,7 +43,7 @@ const OUTCOME_LABEL: Record<string, string> = Object.fromEntries(
  * form that asks ten questions per proposal is a form that gets filled in at
  * the end of the week from memory, which is worse than no form.
  */
-export function BidForm() {
+export function BidForm({ accounts }: { accounts: string[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
 
@@ -69,6 +69,21 @@ export function BidForm() {
             required
             autoComplete="off"
             placeholder="Shopify automation build"
+          />
+        </FieldRow>
+
+        <FieldRow
+          label="Upwork account"
+          htmlFor="account"
+          hint="Which account's connects this used."
+        >
+          <Combobox
+            id="account"
+            name="account"
+            required
+            defaultValue={accounts[0] ?? ""}
+            placeholder={accounts.length === 0 ? "None set up yet" : "Choose…"}
+            options={accounts.map((a) => ({ value: a, label: a }))}
           />
         </FieldRow>
 

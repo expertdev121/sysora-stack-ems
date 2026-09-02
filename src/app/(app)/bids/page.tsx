@@ -37,7 +37,7 @@ export default async function BidsPage() {
   const today = localDateISO(session.profile.timezone);
 
   // RLS returns your own bids, or everyone's if you are staff.
-  const [{ data: bidRows }, { data: targetRows }] = await Promise.all([
+  const [{ data: bidRows }, { data: targetRows }, { data: accountRows }] = await Promise.all([
     supabase
       .from("proposals")
       .select(
@@ -50,12 +50,15 @@ export default async function BidsPage() {
       .select("*")
       .eq("is_current", true)
       .order("starts_on", { ascending: false }),
+    // Names only — a bidder cannot read what any batch of connects cost.
+    supabase.from("bidder_accounts").select("account").order("account"),
   ]);
 
   const all = (bidRows ?? []) as (Bid & { submitted_by: string | null })[];
   const mine = all.filter((b) => b.submitted_by === session.userId);
   const staff = isStaff(session.profile);
 
+  const accounts = ((accountRows ?? []) as { account: string }[]).map((a) => a.account);
   const targets = (targetRows ?? []) as BidderTarget[];
   const bidTarget = targets.find((t) => t.metric_slug === "upwork_bids") ?? null;
 
@@ -161,7 +164,7 @@ export default async function BidsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BidForm />
+          <BidForm accounts={accounts} />
         </CardContent>
       </Card>
 

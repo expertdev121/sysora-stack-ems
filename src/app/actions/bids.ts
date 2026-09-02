@@ -48,8 +48,12 @@ export async function logBid(formData: FormData): Promise<ActionResult> {
   const clientName = String(formData.get("client_name") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const connectsRaw = String(formData.get("connects_spent") ?? "").trim();
+  const account = String(formData.get("account") ?? "").trim();
 
   if (!jobTitle) return { ok: false, error: "What was the job?" };
+  // Without this the connects come off nowhere, and the balance goes negative
+  // against an "Unassigned" account that does not exist.
+  if (!account) return { ok: false, error: "Which Upwork account did the connects come from?" };
   if (jobTitle.length > MAX_TITLE) return { ok: false, error: "That title is very long." };
   if (notes.length > MAX_NOTE) return { ok: false, error: "That note is very long." };
 
@@ -64,6 +68,7 @@ export async function logBid(formData: FormData): Promise<ActionResult> {
   const supabase = await createSalesClient();
   const { error } = await supabase.from("proposals").insert({
     submitted_on: submittedOn,
+    account,
     job_title: jobTitle,
     job_url: jobUrl || null,
     client_name: clientName || null,
