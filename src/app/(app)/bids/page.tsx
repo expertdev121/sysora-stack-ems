@@ -58,7 +58,7 @@ export default async function BidsPage() {
       .eq("is_current", true)
       .order("starts_on", { ascending: false }),
     // Names only — a bidder cannot read what any batch of connects cost.
-    supabase.from("bidder_accounts").select("account").order("account"),
+    supabase.from("bidder_accounts").select("account, spends_from").order("account"),
     // RLS gives you your own sessions. Thirty days is enough for a week total
     // and a short recent list without dragging a year of rows into the page.
     supabase
@@ -103,7 +103,10 @@ export default async function BidsPage() {
         0,
       );
 
-  const accounts = ((accountRows ?? []) as { account: string }[]).map((a) => a.account);
+  // Each profile with the balance it actually spends. An agency member bids
+  // on the agency connects, so the form has to say so — otherwise somebody
+  // watches their own balance and wonders why it never moves.
+  const accounts = (accountRows ?? []) as { account: string; spends_from: string }[];
   const targets = (targetRows ?? []) as BidderTarget[];
   const bidTarget = targets.find((t) => t.metric_slug === "upwork_bids") ?? null;
 

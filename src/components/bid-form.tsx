@@ -11,6 +11,9 @@ import { EmptyState } from "@/components/ui/callout";
 import { humanDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
+/** A profile in the picker, with the balance its bids actually spend. */
+export type UpworkAccountOption = { account: string; spends_from: string };
+
 export type Bid = {
   id: string;
   submitted_on: string;
@@ -50,9 +53,16 @@ const OUTCOME_LABEL: Record<string, string> = Object.fromEntries(
  * is worth doing and worth keeping, but making it mandatory would turn a
  * ten-second log into a chore and the logging would stop.
  */
-export function BidForm({ accounts }: { accounts: string[] }) {
+export function BidForm({ accounts }: { accounts: UpworkAccountOption[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
+  const [account, setAccount] = useState(accounts[0]?.account ?? "");
+
+  // An agency member's bid spends the agency's connects, not their own. Saying
+  // which balance is about to move stops somebody watching a number that will
+  // never change.
+  const chosen = accounts.find((a) => a.account === account);
+  const spendsElsewhere = chosen && chosen.spends_from !== chosen.account;
 
   function onSubmit(formData: FormData) {
     startTransition(async () => {
@@ -82,15 +92,24 @@ export function BidForm({ accounts }: { accounts: string[] }) {
         <FieldRow
           label="Upwork account"
           htmlFor="account"
-          hint="Which account's connects this used."
+          hint={
+            spendsElsewhere
+              ? `Bidding as ${chosen!.account} — the connects come off ${chosen!.spends_from}.`
+              : "Which account you bid from."
+          }
         >
           <Combobox
             id="account"
             name="account"
             required
-            defaultValue={accounts[0] ?? ""}
+            value={account}
+            onChange={setAccount}
             placeholder={accounts.length === 0 ? "None set up yet" : "Choose…"}
-            options={accounts.map((a) => ({ value: a, label: a }))}
+            options={accounts.map((a) => ({
+              value: a.account,
+              label:
+                a.spends_from === a.account ? a.account : `${a.account} → ${a.spends_from}`,
+            }))}
           />
         </FieldRow>
 
