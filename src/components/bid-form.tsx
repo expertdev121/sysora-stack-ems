@@ -2,11 +2,11 @@
 
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ChevronRight, ExternalLink, Trash2 } from "lucide-react";
 import { deleteBid, logBid, setBidOutcome } from "@/app/actions/bids";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-import { FieldRow, Input } from "@/components/ui/field";
+import { FieldRow, Input, Textarea } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/callout";
 import { humanDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ export type Bid = {
   connects_spent: number;
   connects_refunded: number;
   outcome: string;
+  /** The proposal as it was sent. Null on rows logged before this existed. */
+  notes: string | null;
 };
 
 const OUTCOMES = [
@@ -39,9 +41,14 @@ const OUTCOME_LABEL: Record<string, string> = Object.fromEntries(
 /**
  * Log a bid.
  *
- * Six fields, and only two of them required — a title and a connect count. A
- * form that asks ten questions per proposal is a form that gets filled in at
- * the end of the week from memory, which is worse than no form.
+ * Six fields, and only three of them required — a title, an account and a
+ * connect count. A form that asks ten questions per proposal is a form that
+ * gets filled in at the end of the week from memory, which is worse than no
+ * form.
+ *
+ * The proposal itself is optional for the same reason. Pasting a cover letter
+ * is worth doing and worth keeping, but making it mandatory would turn a
+ * ten-second log into a chore and the logging would stop.
  */
 export function BidForm({ accounts }: { accounts: string[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -111,8 +118,19 @@ export function BidForm({ accounts }: { accounts: string[] }) {
           />
         </FieldRow>
 
-        <FieldRow label="Note" htmlFor="notes" className="sm:col-span-2">
-          <Input id="notes" name="notes" placeholder="Optional — anything worth remembering" />
+        <FieldRow
+          label="Your proposal"
+          htmlFor="notes"
+          hint="Paste what you actually sent, so you can see later which pitches won."
+          className="sm:col-span-2"
+        >
+          <Textarea
+            id="notes"
+            name="notes"
+            rows={8}
+            className="min-h-40 leading-[1.6]"
+            placeholder="Paste the cover letter you submitted for this job…"
+          />
         </FieldRow>
       </div>
 
@@ -158,6 +176,22 @@ export function BidRow({ bid, canEdit }: { bid: Bid; canEdit: boolean }) {
           {net !== bid.connects_spent && <span> · {net} net</span>}
           {bid.client_name ? ` · ${bid.client_name}` : ""}
         </p>
+
+        {/* Collapsed by default. Storing a proposal you cannot read back is
+            pointless, but a list of twenty open cover letters is unreadable —
+            so it is here, one click away, and folded. */}
+        {bid.notes ? (
+          <details className="group mt-1.5">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-mint-deep hover:underline [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="size-3 transition-transform group-open:rotate-90" />
+              <span className="group-open:hidden">Read the proposal</span>
+              <span className="hidden group-open:inline">Hide the proposal</span>
+            </summary>
+            <p className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-line-soft bg-canvas px-3 py-2 text-xs leading-[1.7] whitespace-pre-wrap text-ink">
+              {bid.notes}
+            </p>
+          </details>
+        ) : null}
       </div>
 
       {canEdit ? (

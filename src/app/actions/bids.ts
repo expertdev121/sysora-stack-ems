@@ -20,7 +20,16 @@ import type { ActionResult } from "@/lib/types";
  */
 
 const MAX_TITLE = 300;
-const MAX_NOTE = 2_000;
+
+/**
+ * Room for a whole proposal, not a note.
+ *
+ * Upwork caps a cover letter at 5,000 characters, and a bidder may paste the
+ * screening answers under it, so the old 2,000 would have silently rejected
+ * real work. The column is unbounded text; this is only here to stop a
+ * runaway paste.
+ */
+const MAX_NOTE = 20_000;
 
 const OUTCOMES = [
   "sent",
@@ -55,7 +64,7 @@ export async function logBid(formData: FormData): Promise<ActionResult> {
   // against an "Unassigned" account that does not exist.
   if (!account) return { ok: false, error: "Which Upwork account did the connects come from?" };
   if (jobTitle.length > MAX_TITLE) return { ok: false, error: "That title is very long." };
-  if (notes.length > MAX_NOTE) return { ok: false, error: "That note is very long." };
+  if (notes.length > MAX_NOTE) return { ok: false, error: "That proposal is too long to store — trim it a little." };
 
   const connects = Number(connectsRaw || 0);
   if (!Number.isInteger(connects) || connects < 0) {

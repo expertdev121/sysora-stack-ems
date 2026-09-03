@@ -42,7 +42,7 @@ export default async function BidsPage() {
     supabase
       .from("proposals")
       .select(
-        "id, submitted_on, job_title, job_url, client_name, connects_spent, connects_refunded, outcome, submitted_by",
+        "id, submitted_on, job_title, job_url, client_name, connects_spent, connects_refunded, outcome, submitted_by, notes",
       )
       .order("submitted_on", { ascending: false })
       .limit(200),
