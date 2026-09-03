@@ -85,23 +85,29 @@ export default async function BidsPage() {
 
   // Both totals count only finished sessions. The one still running is added
   // in the browser as it ticks, so the figure moves while you watch it.
-  const startOfToday = new Date(today + "T00:00:00").getTime();
-  const startOfWeek = startOfToday - ((new Date(startOfToday).getDay() + 6) % 7) * 86_400_000;
+  //
+  // Bucketed by the calendar date in the person's own timezone, not by an
+  // instant. Parsing "2026-09-04T00:00:00" would be read in the server's zone,
+  // which is UTC — so on a UTC host every session between midnight and 5:30am
+  // IST would drop out of "today" and reappear as yesterday's work.
+  const dayOf = (iso: string) => localDateISO(session.profile.timezone, new Date(iso));
 
-  const secondsIn = (from: number) =>
-    closed
-      .filter((s) => new Date(s.started_at).getTime() >= from)
-      .reduce(
-        (sum, s) =>
-          sum +
-          Math.max(
-            Math.floor(
-              (new Date(s.ended_at!).getTime() - new Date(s.started_at).getTime()) / 1000,
-            ),
-            0,
-          ),
-        0,
-      );
+  // Monday of the current week, as a date string. Compared as text, so there
+  // is no instant arithmetic to get wrong across a timezone boundary.
+  const weekStart = (() => {
+    const d = new Date(today + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const lengthOf = (s: BidSession) =>
+    Math.max(
+      Math.floor((new Date(s.ended_at!).getTime() - new Date(s.started_at).getTime()) / 1000),
+      0,
+    );
+
+  const secondsSince = (fromDay: string) =>
+    closed.filter((s) => dayOf(s.started_at) >= fromDay).reduce((sum, s) => sum + lengthOf(s), 0);
 
   // Each profile with the balance it actually spends. An agency member bids
   // on the agency connects, so the form has to say so — otherwise somebody
@@ -207,8 +213,8 @@ export default async function BidsPage() {
         <div className="mb-6">
           <BidTimer
             open={openSession}
-            todaySeconds={secondsIn(startOfToday)}
-            weekSeconds={secondsIn(startOfWeek)}
+            todaySeconds={secondsSince(today)}
+            weekSeconds={secondsSince(weekStart)}
             recent={closed.slice(0, 8)}
           />
         </div>
