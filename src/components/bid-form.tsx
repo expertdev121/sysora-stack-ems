@@ -105,9 +105,11 @@ export function BidForm({ accounts }: { accounts: string[] }) {
           />
         </FieldRow>
 
-        <FieldRow label="Client, if you know it" htmlFor="client_name">
-          <Input id="client_name" name="client_name" autoComplete="off" placeholder="Optional" />
-        </FieldRow>
+        {/* No client field. At the moment you bid you do not know who the
+            client is — Upwork does not tell you until they reply — so asking
+            produced a blank box on every row. The column is still there and
+            still filled in from the sales side when a bid is won, which is
+            the first point anybody actually knows the answer. */}
 
         <FieldRow label="Job link" htmlFor="job_url" className="sm:col-span-2">
           <Input
