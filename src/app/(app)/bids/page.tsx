@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { BidForm, BidList, type Bid } from "@/components/bid-form";
 import { BidTimer } from "@/components/bid-timer";
+import type { BidSession } from "@/app/actions/bid-sessions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
@@ -38,7 +39,12 @@ export default async function BidsPage() {
   const today = localDateISO(session.profile.timezone);
 
   // RLS returns your own bids, or everyone's if you are staff.
-  const [{ data: bidRows }, { data: targetRows }, { data: accountRows }] = await Promise.all([
+  const [
+    { data: bidRows },
+    { data: targetRows },
+    { data: accountRows },
+    { data: sessionRows },
+  ] = await Promise.all([
     supabase
       .from("proposals")
       .select(
@@ -53,6 +59,13 @@ export default async function BidsPage() {
       .order("starts_on", { ascending: false }),
     // Names only — a bidder cannot read what any batch of connects cost.
     supabase.from("bidder_accounts").select("account").order("account"),
+    // RLS gives you your own sessions. Thirty days is enough for a week total
+    // and a short recent list without dragging a year of rows into the page.
+    supabase
+      .from("bid_sessions")
+      .select("id, started_at, ended_at, user_id")
+      .gte("started_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+      .order("started_at", { ascending: false }),
   ]);
 
   const all = (bidRows ?? []) as (Bid & { submitted_by: string | null })[];
@@ -60,6 +73,35 @@ export default async function BidsPage() {
   const staff = isStaff(session.profile);
   // The timer is a bidder's own working aid, not a management view.
   const isBde = session.profile.role === "bde";
+
+  // Staff see everyone's sessions through RLS, but the timer is a personal
+  // clock — only ever show and total the viewer's own.
+  const mySessions = ((sessionRows ?? []) as (BidSession & { user_id: string })[]).filter(
+    (s) => s.user_id === session.userId,
+  );
+
+  const openSession = mySessions.find((s) => s.ended_at === null) ?? null;
+  const closed = mySessions.filter((s) => s.ended_at !== null);
+
+  // Both totals count only finished sessions. The one still running is added
+  // in the browser as it ticks, so the figure moves while you watch it.
+  const startOfToday = new Date(today + "T00:00:00").getTime();
+  const startOfWeek = startOfToday - ((new Date(startOfToday).getDay() + 6) % 7) * 86_400_000;
+
+  const secondsIn = (from: number) =>
+    closed
+      .filter((s) => new Date(s.started_at).getTime() >= from)
+      .reduce(
+        (sum, s) =>
+          sum +
+          Math.max(
+            Math.floor(
+              (new Date(s.ended_at!).getTime() - new Date(s.started_at).getTime()) / 1000,
+            ),
+            0,
+          ),
+        0,
+      );
 
   const accounts = ((accountRows ?? []) as { account: string }[]).map((a) => a.account);
   const targets = (targetRows ?? []) as BidderTarget[];
@@ -158,7 +200,16 @@ export default async function BidsPage() {
         )}
       </div>
 
-      {isBde ? <div className="mb-6"><BidTimer /></div> : null}
+      {isBde ? (
+        <div className="mb-6">
+          <BidTimer
+            open={openSession}
+            todaySeconds={secondsIn(startOfToday)}
+            weekSeconds={secondsIn(startOfWeek)}
+            recent={closed.slice(0, 8)}
+          />
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
