@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/page-header";
 import { BidForm, BidList, type Bid } from "@/components/bid-form";
+import { BidTimer } from "@/components/bid-timer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
@@ -57,6 +58,8 @@ export default async function BidsPage() {
   const all = (bidRows ?? []) as (Bid & { submitted_by: string | null })[];
   const mine = all.filter((b) => b.submitted_by === session.userId);
   const staff = isStaff(session.profile);
+  // The timer is a bidder's own working aid, not a management view.
+  const isBde = session.profile.role === "bde";
 
   const accounts = ((accountRows ?? []) as { account: string }[]).map((a) => a.account);
   const targets = (targetRows ?? []) as BidderTarget[];
@@ -154,6 +157,8 @@ export default async function BidsPage() {
           </StatCard>
         )}
       </div>
+
+      {isBde ? <div className="mb-6"><BidTimer /></div> : null}
 
       <Card>
         <CardHeader>
