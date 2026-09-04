@@ -9,6 +9,7 @@ import {
   Plane,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { TodayPriorities } from "@/components/today-priorities";
 import {
   Card,
   CardContent,
@@ -219,6 +220,9 @@ export default async function DashboardPage() {
           </span>
         </Callout>
       ) : null}
+
+      <TodayPriorities userId={session.userId} today={todayISO} />
+
 
       {/* ---- Your day ---------------------------------------------------- */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
