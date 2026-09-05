@@ -45,10 +45,6 @@ export function clientOptions(existingKeys: (string | null)[]): { id: string; na
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function clientHint(key: string | null): string | undefined {
-  if (!key) return "Not yet assigned to a client";
-  return CLIENTS.find((c) => c.key === key)?.hint;
-}
 
 /** Client order for display, with anything unknown and then unassigned last. */
 export function sortClientKeys(keys: (string | null)[]): (string | null)[] {

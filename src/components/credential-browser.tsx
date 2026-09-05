@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/callout";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { CREDENTIAL_COLUMNS, CredentialTableRow } from "@/components/credential-list";
 import type { FormOption, PersonOption } from "@/components/credential-form";
-import { clientHint, clientName } from "@/lib/clients";
+import { clientName } from "@/lib/clients";
 import { toolLabel } from "@/lib/team-assets";
 import type { CredentialSummary, GrantMode } from "@/lib/types";
 
@@ -87,7 +87,7 @@ export function CredentialBrowser({
       .map(([key, n]) => ({
         value: key || "__none__",
         label: key ? clientLabel(key) : "No client",
-        hint: `${n}${clientHint(key || null) ? ` · ${clientHint(key || null)}` : ""}`,
+        hint: String(n),
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [credentials, clientLabel]);
