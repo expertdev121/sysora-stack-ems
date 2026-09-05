@@ -67,6 +67,31 @@ export const TEAM_ASSETS: TeamAsset[] = [
     href: "https://chatgpt.com/g/g-686648dd496081918f2df808437bd55f-superhuman-on-the-fly-prompt-builder",
   },
   {
+    id: "calchat",
+    name: "CalChat",
+    description: "General-purpose custom GPT — ask it anything. Uses your own ChatGPT account.",
+    href: "https://chatgpt.com/g/g-6968ca126aa08191887c930372d8f1dd-calchat",
+  },
+  {
+    id: "david-ghiyam-gpt",
+    name: "Act as David Ghiyam",
+    description: "Custom GPT that answers in David Ghiyam's voice. Uses your own ChatGPT account.",
+    href: "https://chatgpt.com/g/g-67d1ed21f9a881919b6e1c1f10f72eda-act-as-david-ghiyam",
+  },
+  {
+    id: "custom-instructions-builder",
+    name: "Build custom instructions",
+    description:
+      "Writes ChatGPT custom instructions for you, in Callan's style. Uses your own ChatGPT account.",
+    href: "https://chatgpt.com/g/g-qjgy6rUbQ-build-custom-instructions-like-callan-would",
+  },
+  {
+    id: "superhuman-coach",
+    name: "Superhuman coach",
+    description: "Coaching custom GPT. Uses your own ChatGPT account.",
+    href: "https://chatgpt.com/g/g-697ff148677c8191a021161b633edf93-superhuman-coach",
+  },
+  {
     id: "justpaste",
     name: "JustPaste.it",
     description: "Quick copy-and-paste scratch pad for sharing snippets. No login needed.",
