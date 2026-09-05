@@ -117,11 +117,11 @@ export async function saveCredential(formData: FormData): Promise<ActionResult> 
   const secret = String(formData.get("secret") ?? "");
   const url = String(formData.get("url") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  // The form no longer offers a second secret, but six credentials still
-  // hold one from when it did. has() rather than get() is the whole point:
-  // an absent field means "this form doesn't manage that column", while a
-  // present-but-empty one means "clear it". Reading with get() alone would
-  // treat every save from the current form as a request to erase them.
+  // has() rather than get() is the whole point: an absent field means "this
+  // form does not manage that column", while a present-but-empty one means
+  // "clear it". Reading with get() alone would treat a save from any form
+  // without these fields as a request to erase what is stored — which is why
+  // the form prefills the label rather than rendering it empty.
   const managesExtra = formData.has("extra_label") || formData.has("extra_secret");
   const extraLabel = String(formData.get("extra_label") ?? "").trim() || null;
   const extraSecret = String(formData.get("extra_secret") ?? "");

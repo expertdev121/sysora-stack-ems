@@ -168,6 +168,43 @@ function CredentialFields({
             />
           </FieldRow>
 
+          {/*
+            A second secret, for the logins that genuinely have one — an API
+            key beside a password, a backup code, an app password.
+
+            It lives behind "More options" because most logins do not need one
+            and three always-visible fields made the form read like paperwork.
+
+            The label is prefilled deliberately. The save action treats a
+            present-but-empty label as "clear it", so leaving this blank on an
+            edit would wipe a stored secret during an unrelated change.
+          */}
+          <FieldRow
+            label="Second secret — label"
+            htmlFor={`${idPrefix}-extra-label`}
+            hint="What it is, e.g. “API key”. Clearing this removes the second secret."
+          >
+            <Input
+              id={`${idPrefix}-extra-label`}
+              name="extra_label"
+              placeholder="API key"
+              defaultValue={credential?.extra_label ?? ""}
+            />
+          </FieldRow>
+
+          <FieldRow
+            label="Second secret — value"
+            htmlFor={`${idPrefix}-extra-secret`}
+            hint={isEdit ? "Blank keeps the stored one." : "Encrypted before it's saved."}
+          >
+            <Input
+              id={`${idPrefix}-extra-secret`}
+              name="extra_secret"
+              type="password"
+              autoComplete="new-password"
+            />
+          </FieldRow>
+
           <div className="sm:col-span-2">
             <Label>Who can reveal this</Label>
             <div className="mt-1.5 flex flex-wrap gap-4">
